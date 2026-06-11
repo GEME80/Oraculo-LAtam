@@ -131,7 +131,26 @@ export default function App() {
     if (hash && hash.includes('type=recovery')) {
       setResetPasswordMode(true);
     }
+
+    // Run initial session check
     initializeSession();
+
+    // Listen for Supabase auth state changes (handles OAuth redirects in production)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Re-initialize to load profile after successful login
+        initializeSession();
+      } else if (event === 'SIGNED_OUT') {
+        setUserProfile(null);
+        setPositions([]);
+        setLimitOrders([]);
+        fetchMarkets();
+      } else if (event === 'PASSWORD_RECOVERY') {
+        setResetPasswordMode(true);
+      }
+    });
+
+    return () => subscription?.unsubscribe();
   }, []);
 
   // Periodic Matching Engine loop for Rest Limit Orders
@@ -192,7 +211,16 @@ export default function App() {
   const initializeSession = async () => {
     try {
       // Get user from Supabase auth (mock or real)
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error: authError } = await supabase.auth.getUser();
+      const user = data?.user;
+
+      if (authError && !user) {
+        // No valid session (expected for guests) — load markets as guest
+        setUserProfile(null);
+        fetchMarkets();
+        return;
+      }
+
       if (user) {
         // Fetch or create profile
         let { data: profile, error } = await supabase
@@ -227,13 +255,14 @@ export default function App() {
         fetchPositions(profile.id);
         fetchLimitOrders(profile.id);
       } else {
-        // Guest mode: load markets without a user profile
+        // No user — guest mode: load markets without profile
         setUserProfile(null);
         fetchMarkets();
       }
     } catch (err) {
       console.error('Session initialization error:', err);
-      // Even on error, load markets for guest browsing
+      // Even on unexpected error, load markets for guest browsing
+      setUserProfile(null);
       fetchMarkets();
     }
   };
@@ -667,6 +696,7 @@ export default function App() {
             <AuthScreen
               onAuthSuccess={initializeSession}
               forceResetPassword={false}
+              isModal={true}
               onPasswordResetComplete={() => {
                 setShowAuthModal(false);
                 initializeSession();

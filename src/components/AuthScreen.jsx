@@ -11,7 +11,7 @@ const LATAM_COUNTRIES = [
   { code: 'PE', name: 'Perú 🇵🇪' }
 ];
 
-export default function AuthScreen({ onAuthSuccess, forceResetPassword = false, onPasswordResetComplete }) {
+export default function AuthScreen({ onAuthSuccess, forceResetPassword = false, onPasswordResetComplete, isModal = false }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -209,7 +209,7 @@ export default function AuthScreen({ onAuthSuccess, forceResetPassword = false, 
   };
 
   return (
-    <div className="auth-page">
+    <div className={isModal ? 'auth-modal-mode' : 'auth-page'}>
       <div className="auth-container">
         {/* Left Side: Brand Onboarding */}
         <div className="brand-panel">

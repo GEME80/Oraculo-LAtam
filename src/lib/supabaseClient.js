@@ -900,6 +900,12 @@ const mockSupabaseClient = {
         localStorage.setItem('oraculo_auth_users', JSON.stringify(authUsers));
       }
       return { data: { user: { id: currentUserId } }, error: null };
+    },
+
+    // No-op stub for mock mode (real Supabase uses this for OAuth/recovery redirects)
+    onAuthStateChange: (callback) => {
+      // In mock mode, no auth state changes happen automatically
+      return { data: { subscription: { unsubscribe: () => {} } } };
     }
   },
   from: (table) => {
