@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, CheckCircle2, Ticket, Sparkles, HelpCircle, Gift, Plus, Edit3, Trash2, X, Check, Eye } from 'lucide-react';
+import { Award, CheckCircle2, Ticket, Sparkles, HelpCircle, Gift, Plus, Edit3, Trash2, X, Check, Eye, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Dialog } from './CustomDialog';
 
@@ -17,6 +17,26 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
   const [rewStock, setRewStock] = useState('');
   const [rewDesc, setRewDesc] = useState('');
   const [rewImgUrl, setRewImgUrl] = useState('');
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 1.5 * 1024 * 1024) {
+      Dialog.alert('La imagen es demasiado grande. El límite es 1.5MB.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      Dialog.alert('Por favor selecciona un archivo de imagen válido.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setRewImgUrl(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     fetchRewards();
@@ -258,17 +278,51 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
                     style={{ background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-main))', border: '1px solid hsl(var(--border))', padding: '0.6rem', borderRadius: 'var(--radius-sm)', width: '100%', fontSize: '0.85rem' }}
                   />
                 </div>
-                <div className="trade-input-group">
-                  <label htmlFor="rewImgUrl" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>URL Imagen Cover (Opcional)</label>
-                  <input 
-                    id="rewImgUrl" 
-                    type="url" 
-                    placeholder="Ej. https://images.unsplash.com/..." 
-                    value={rewImgUrl} 
-                    onChange={(e) => setRewImgUrl(e.target.value)} 
-                    style={{ background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-main))', border: '1px solid hsl(var(--border))', padding: '0.6rem', borderRadius: 'var(--radius-sm)', width: '100%', fontSize: '0.85rem' }}
-                  />
-                </div>
+                 <div className="trade-input-group">
+                   <label htmlFor="rewImgUrl" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Imagen Cover (Archivo o URL)</label>
+                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                     <input 
+                       id="rewImgUrl" 
+                       type="text" 
+                       placeholder="Pega una URL o sube una imagen..." 
+                       value={rewImgUrl} 
+                       onChange={(e) => setRewImgUrl(e.target.value)} 
+                       style={{ background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-main))', border: '1px solid hsl(var(--border))', padding: '0.6rem', borderRadius: 'var(--radius-sm)', flex: 1, fontSize: '0.85rem' }}
+                     />
+                     <label 
+                       className="tab-btn" 
+                       style={{
+                         padding: '0.65rem 1rem',
+                         fontSize: '0.8rem',
+                         borderRadius: 'var(--radius-sm)',
+                         cursor: 'pointer',
+                         whiteSpace: 'nowrap',
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: '0.25rem',
+                         background: 'hsl(var(--bg-elevated))',
+                         border: '1px solid hsl(var(--border))',
+                         color: 'hsl(var(--text-main))',
+                         margin: 0
+                       }}
+                     >
+                       <Upload size={14} />
+                       Subir
+                       <input 
+                         type="file" 
+                         accept="image/*" 
+                         onChange={handleImageUpload} 
+                         style={{ display: 'none' }} 
+                       />
+                     </label>
+                   </div>
+                   {rewImgUrl && (
+                     <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                       <img src={rewImgUrl} alt="Preview" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid hsl(var(--border))' }} />
+                       <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '200px' }}>Vista previa</span>
+                     </div>
+                   )}
+                 </div>
               </div>
             </div>
 
