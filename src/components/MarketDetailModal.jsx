@@ -166,7 +166,7 @@ function ActivityBlock({ market, participantCount }) {
 }
 
 // ─── Main component ────────────────────────────────────────────────
-export default function MarketDetailModal({ market, initialOutcome, isOpen, onClose, userProfile, onTradeComplete, allUserPositions = [] }) {
+export default function MarketDetailModal({ market, initialOutcome, isOpen, onClose, userProfile, onTradeComplete, allUserPositions = [], onRequestLogin }) {
   const dialogRef = useRef(null);
   const [outcome, setOutcome] = useState('YES');
   const [amount, setAmount] = useState('');
@@ -835,7 +835,57 @@ export default function MarketDetailModal({ market, initialOutcome, isOpen, onCl
         {/* ─── RIGHT COLUMN ─── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderLeft: '1px solid hsl(var(--border))', paddingLeft: '2rem' }} className="modal-right-col">
 
-          {userProfile?.role === 'admin' ? (
+          {!userProfile ? (
+            /* Guest mode: show CTA to sign in */
+            <div className="trading-interface" style={{
+              display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+              padding: '2.5rem 1.5rem',
+              background: 'linear-gradient(145deg, hsl(var(--brand) / 0.08), hsl(var(--bg-elevated) / 0.2))',
+              border: '1px solid hsl(var(--brand) / 0.25)', borderRadius: 'var(--radius-lg)',
+              textAlign: 'center', gap: '1.25rem', minHeight: '320px'
+            }}>
+              <div style={{
+                background: 'hsl(var(--brand) / 0.12)', color: 'hsl(var(--brand))',
+                width: '72px', height: '72px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '2px solid hsl(var(--brand) / 0.3)',
+                fontSize: '2rem'
+              }}>
+                🔮
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxWidth: '280px' }}>
+                <span style={{ fontWeight: 800, fontSize: '1.15rem', color: 'hsl(var(--text-main))', lineHeight: 1.3 }}>
+                  ¡Predice y gana créditos!
+                </span>
+                <p style={{ fontSize: '0.83rem', color: 'hsl(var(--text-muted))', margin: 0, lineHeight: 1.55 }}>
+                  Crea una cuenta gratuita o inicia sesión para participar en este mercado y ganar créditos con tus predicciones.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { onClose(); onRequestLogin && onRequestLogin(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  background: 'hsl(var(--brand))',
+                  color: 'white', border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 2rem',
+                  fontWeight: 800, fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 20px hsl(var(--brand) / 0.4)',
+                  transition: 'transform 0.15s, opacity 0.15s',
+                  width: '100%'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                🚀 Iniciar Sesión / Registrarse
+              </button>
+              <span style={{ fontSize: '0.72rem', color: 'hsl(var(--text-muted))' }}>
+                Es gratis. Empiezas con 1,000 créditos.
+              </span>
+            </div>
+          ) : userProfile?.role === 'admin' ? (
             /* Admin view */
             <div className="trading-interface" style={{
               display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',

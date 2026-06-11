@@ -30,7 +30,9 @@ import {
   ShieldAlert,
   HelpCircle,
   LayoutDashboard,
-  Trash2
+  Trash2,
+  LogIn,
+  X
 } from 'lucide-react';
 
 const CATEGORIES = ['Todos', 'Política', 'Economía', 'Tecnología', 'Deportes', 'Cultura'];
@@ -109,6 +111,18 @@ export default function App() {
   const [selectedMarket, setSelectedMarket] = useState(null);
   const [initialOutcome, setInitialOutcome] = useState('YES');
   const [resetPasswordMode, setResetPasswordMode] = useState(false);
+
+  // Auth Modal State (for guest users)
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Helper: require auth before running an action
+  const requireAuth = (onSuccess) => {
+    if (!userProfile) {
+      setShowAuthModal(true);
+    } else {
+      onSuccess();
+    }
+  };
 
   // Load user profile and initial markets
   useEffect(() => {
@@ -208,12 +222,19 @@ export default function App() {
         }
 
         setUserProfile(profile);
+        setShowAuthModal(false); // Close auth modal on successful login
         fetchMarkets();
         fetchPositions(profile.id);
         fetchLimitOrders(profile.id);
+      } else {
+        // Guest mode: load markets without a user profile
+        setUserProfile(null);
+        fetchMarkets();
       }
     } catch (err) {
       console.error('Session initialization error:', err);
+      // Even on error, load markets for guest browsing
+      fetchMarkets();
     }
   };
 
@@ -590,14 +611,14 @@ export default function App() {
     return totalCost;
   };
 
-  if (!userProfile) {
+  // Password reset mode still takes over the whole screen
+  if (resetPasswordMode) {
     return (
       <AuthScreen 
         onAuthSuccess={initializeSession} 
         forceResetPassword={resetPasswordMode} 
         onPasswordResetComplete={() => {
           setResetPasswordMode(false);
-          // Clear hash to prevent reload loop
           window.location.hash = '';
           initializeSession();
         }}
@@ -614,6 +635,47 @@ export default function App() {
   return (
     <div className="app-container">
       <DialogProvider />
+
+      {/* ── Auth Modal Overlay (for guests) ── */}
+      {showAuthModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAuthModal(false); }}
+        >
+          <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+            <button
+              onClick={() => setShowAuthModal(false)}
+              style={{
+                position: 'absolute', top: '-2.5rem', right: 0,
+                background: 'hsl(var(--bg-elevated))',
+                border: '1px solid hsl(var(--border))',
+                color: 'hsl(var(--text-muted))',
+                borderRadius: '50%', width: '2rem', height: '2rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', zIndex: 1
+              }}
+              title="Cerrar"
+            >
+              <X size={16} />
+            </button>
+            <AuthScreen
+              onAuthSuccess={initializeSession}
+              forceResetPassword={false}
+              onPasswordResetComplete={() => {
+                setShowAuthModal(false);
+                initializeSession();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Top sticky header bar */}
       <header className="app-header">
         <div className="brand-wrapper" onClick={() => setActiveTab('markets')}>
@@ -630,57 +692,80 @@ export default function App() {
               <span>{parseFloat(userProfile.orc_balance).toLocaleString()} Créditos</span>
             </div>
           )}
-          {userProfile && (
-            <div 
-              className={`user-profile-summary clickable-avatar ${activeTab === 'profile' ? 'active-avatar' : ''}`}
-              onClick={() => setActiveTab('profile')}
-              style={{ 
-                cursor: 'pointer', 
-                transition: 'opacity 0.2s', 
-                border: activeTab === 'profile' ? '2px solid hsl(var(--brand))' : '2px solid transparent', 
-                borderRadius: 'var(--radius-md)', 
-                padding: '0.2rem',
-                display: 'flex',
-                alignItems: 'center'
-              }}
-              title="Ver Mi Perfil"
-            >
-              <img 
-                src={userProfile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile.username || 'user')}`} 
-                alt={userProfile.username} 
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile.username || 'user')}`;
+          {userProfile ? (
+            <>
+              <div 
+                className={`user-profile-summary clickable-avatar ${activeTab === 'profile' ? 'active-avatar' : ''}`}
+                onClick={() => setActiveTab('profile')}
+                style={{ 
+                  cursor: 'pointer', 
+                  transition: 'opacity 0.2s', 
+                  border: activeTab === 'profile' ? '2px solid hsl(var(--brand))' : '2px solid transparent', 
+                  borderRadius: 'var(--radius-md)', 
+                  padding: '0.2rem',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}
-              />
-              <div className="profile-meta">
-                <span className="username">{userProfile.username}</span>
-                {userProfile.role === 'admin' ? (
-                  <span className="rep" style={{ color: 'hsl(var(--no-color))', background: 'hsl(var(--no-bg) / 0.15)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800 }}>Administrador</span>
-                ) : (
-                  <span className="rep">{userProfile.reputation_points} Rep</span>
-                )}
+                title="Ver Mi Perfil"
+              >
+                <img 
+                  src={userProfile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile.username || 'user')}`} 
+                  alt={userProfile.username} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile.username || 'user')}`;
+                  }}
+                />
+                <div className="profile-meta">
+                  <span className="username">{userProfile.username}</span>
+                  {userProfile.role === 'admin' ? (
+                    <span className="rep" style={{ color: 'hsl(var(--no-color))', background: 'hsl(var(--no-bg) / 0.15)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800 }}>Administrador</span>
+                  ) : (
+                    <span className="rep">{userProfile.reputation_points} Rep</span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-          {userProfile && (
-            <button 
-              onClick={handleSignOut} 
-              className="tab-btn" 
-              style={{ 
-                padding: '0.4rem', 
-                borderRadius: '50%', 
-                border: 'none', 
-                background: 'transparent', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center',
-                color: 'hsl(var(--text-muted))',
-                marginLeft: '0.5rem'
-              }} 
-              title="Cerrar Sesión"
+              <button 
+                onClick={handleSignOut} 
+                className="tab-btn" 
+                style={{ 
+                  padding: '0.4rem', 
+                  borderRadius: '50%', 
+                  border: 'none', 
+                  background: 'transparent', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  color: 'hsl(var(--text-muted))',
+                  marginLeft: '0.5rem'
+                }} 
+                title="Cerrar Sesión"
+              >
+                <LogOut size={16} />
+              </button>
+            </>
+          ) : (
+            <button
+              id="guest-login-btn"
+              onClick={() => setShowAuthModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                background: 'hsl(var(--brand))',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.5rem 1.1rem',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s, transform 0.15s',
+                boxShadow: '0 2px 12px hsl(var(--brand) / 0.35)'
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
             >
-              <LogOut size={16} />
+              <LogIn size={16} />
+              Iniciar Sesión
             </button>
           )}
         </div>
@@ -695,7 +780,7 @@ export default function App() {
           <Compass size={16} />
           Mercados
         </button>
-        {userProfile?.role !== 'admin' && (
+        {userProfile && userProfile.role !== 'admin' && (
           <button 
             className={`tab-btn ${activeTab === 'portfolio' ? 'active' : ''}`}
             onClick={() => setActiveTab('portfolio')}
@@ -1234,6 +1319,7 @@ export default function App() {
         userProfile={userProfile}
         onTradeComplete={handleTradeComplete}
         allUserPositions={allUserPositions}
+        onRequestLogin={() => setShowAuthModal(true)}
       />
     </div>
   );
