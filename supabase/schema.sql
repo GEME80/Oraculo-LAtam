@@ -134,6 +134,22 @@ CREATE TABLE IF NOT EXISTS public.resolved_payouts (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- CLAIMS TABLE (dispute resolution system)
+CREATE TABLE IF NOT EXISTS public.claims (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    username TEXT NOT NULL,
+    market_id UUID NOT NULL REFERENCES public.markets(id) ON DELETE CASCADE,
+    market_title TEXT NOT NULL,
+    justification TEXT NOT NULL,
+    evidence_url TEXT,
+    claimed_outcome TEXT NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    admin_notes TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    resolved_at TIMESTAMPTZ
+);
+
 -- LIMIT ORDERS TABLE
 CREATE TABLE IF NOT EXISTS public.limit_orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -150,6 +166,10 @@ CREATE TABLE IF NOT EXISTS public.limit_orders (
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS age INTEGER CHECK (age >= 13 AND age <= 120);
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS gender TEXT CHECK (gender IN ('MASCULINO', 'FEMENINO', 'OTRO'));
 
+-- Markets: option labels added for binary prediction customization
+ALTER TABLE public.markets ADD COLUMN IF NOT EXISTS option_a_label TEXT DEFAULT 'SÍ';
+ALTER TABLE public.markets ADD COLUMN IF NOT EXISTS option_b_label TEXT DEFAULT 'NO';
+
 -- ENABLE ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.markets ENABLE ROW LEVEL SECURITY;
@@ -163,6 +183,7 @@ ALTER TABLE public.sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sponsor_claims ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resolved_payouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.limit_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.claims ENABLE ROW LEVEL SECURITY;
 
 -- DROP ALL POLICIES TO PREVENT "ALREADY EXISTS" ERRORS ON RE-RUN
 DROP POLICY IF EXISTS "Allow public read market_price_history" ON public.market_price_history;
