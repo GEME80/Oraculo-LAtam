@@ -670,29 +670,13 @@ export default function App() {
       {/* ── Auth Modal Overlay (for guests) ── */}
       {showAuthModal && (
         <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.75)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '1.5rem'
-          }}
+          className="auth-modal-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) setShowAuthModal(false); }}
         >
-          <div style={{ position: 'relative', width: '100%', maxWidth: '900px' }}>
+          <div className="auth-modal-content">
             <button
               onClick={() => setShowAuthModal(false)}
-              style={{
-                position: 'absolute', top: '-2.75rem', right: 0,
-                background: 'rgba(255,255,255,0.12)',
-                border: '1px solid rgba(255,255,255,0.25)',
-                color: 'white',
-                borderRadius: '50%', width: '2.25rem', height: '2.25rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', zIndex: 1,
-                backdropFilter: 'blur(4px)',
-                transition: 'background 0.2s'
-              }}
+              className="auth-modal-close-btn"
               title="Cerrar"
             >
               <X size={16} />

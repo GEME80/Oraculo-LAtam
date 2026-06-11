@@ -247,7 +247,7 @@ export default function AuthScreen({ onAuthSuccess, forceResetPassword = false, 
         </div>
 
         {/* Right Side: Credentials & OAuth forms */}
-        <div style={styles.formPanel}>
+        <div className="auth-form-panel" style={styles.formPanel}>
           {isResettingPassword ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <h3 style={styles.formTitle}>Restablecer Contraseña</h3>

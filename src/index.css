@@ -1455,19 +1455,104 @@ dialog.trading-modal {
 .auth-modal-mode {
   display: block;
   padding: 0;
+  width: 100%;
 }
 
 .auth-modal-mode .auth-container {
   max-width: 860px;
   border-radius: var(--radius-lg);
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
-  /* Always show two columns in the modal */
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr; /* Default single column on mobile */
 }
 
-/* In modal mode, always show the brand-panel (override the mobile hide) */
+/* In modal mode, hide the brand-panel on mobile */
 .auth-modal-mode .brand-panel {
-  display: flex !important;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .auth-modal-mode .auth-container {
+    grid-template-columns: 1fr 1fr; /* Two columns on desktop */
+  }
+  
+  .auth-modal-mode .brand-panel {
+    display: flex !important; /* Show brand panel on desktop */
+  }
+}
+
+.auth-form-panel {
+  padding: 1.5rem !important;
+}
+
+@media (min-width: 768px) {
+  .auth-form-panel {
+    padding: 2.5rem !important;
+  }
+}
+
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .auth-modal-overlay {
+    padding: 1.5rem;
+  }
+}
+
+.auth-modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+}
+
+.auth-modal-close-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--text-muted));
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+
+.auth-modal-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: hsl(var(--text-main));
+}
+
+@media (min-width: 768px) {
+  .auth-modal-close-btn {
+    top: -2.75rem;
+    right: 0;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: white;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  
+  .auth-modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
 }
 
 /* Tooltip container and display styling */
