@@ -280,7 +280,7 @@ export default function UserProfileTab({ userProfile, onProfileUpdate }) {
           maxWidth: '600px',
           margin: '0 auto',
           width: '100%'
-        } : { display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }} 
+        } : { display: 'grid', gap: '2rem' }} 
         className={isAdmin ? "" : "profile-grid"}
       >
         
@@ -367,7 +367,7 @@ export default function UserProfileTab({ userProfile, onProfileUpdate }) {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="grid-2col-responsive">
                 <div className="trade-input-group">
                   <label htmlFor="age">Edad</label>
                   <input 

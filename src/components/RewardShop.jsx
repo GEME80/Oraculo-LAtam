@@ -204,7 +204,7 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
             </h4>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }} className="sponsor-form-grid-responsive">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="sponsor-form-cols">
+              <div className="sponsor-form-cols">
                 <div className="trade-input-group">
                   <label htmlFor="rewTitle" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Título del Premio</label>
                   <input 
@@ -231,7 +231,7 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }} className="sponsor-form-cols-three">
+              <div className="sponsor-form-cols-three">
                 <div className="trade-input-group">
                   <label htmlFor="rewCost" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Costo (Créditos)</label>
                   <input 

@@ -108,10 +108,10 @@ export default function Leaderboard({ userProfile }) {
             <tr>
               <th className="rank-col">Puesto</th>
               <th>Analista</th>
-              <th>Predicciones</th>
+              <th className="hide-mobile">Predicciones</th>
               <th>Efectividad</th>
               <th>Reputación</th>
-              <th>Balance</th>
+              <th className="hide-mobile">Balance</th>
             </tr>
           </thead>
           <tbody>
@@ -131,7 +131,7 @@ export default function Leaderboard({ userProfile }) {
                       </span>
                     </div>
                   </td>
-                  <td>{user.predictions_count || 0}</td>
+                  <td className="hide-mobile">{user.predictions_count || 0}</td>
                   <td>
                     <span className="accuracy-badge">
                       {parseFloat(user.accuracy_rate).toFixed(1)}%
@@ -140,7 +140,7 @@ export default function Leaderboard({ userProfile }) {
                   <td style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
                     {user.reputation_points} pts
                   </td>
-                  <td style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, color: 'hsl(var(--brand))' }}>
+                  <td className="hide-mobile" style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, color: 'hsl(var(--brand))' }}>
                     {parseFloat(user.orc_balance).toLocaleString()} Créditos
                   </td>
                 </tr>

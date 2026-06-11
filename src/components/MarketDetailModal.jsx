@@ -588,7 +588,7 @@ export default function MarketDetailModal({ market, initialOutcome, isOpen, onCl
       </div>
 
       {/* ── Two-column layout ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }} className="detail-split-layout">
+      <div className="detail-split-layout">
 
         {/* ─── LEFT COLUMN ─── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -833,7 +833,7 @@ export default function MarketDetailModal({ market, initialOutcome, isOpen, onCl
         </div>
 
         {/* ─── RIGHT COLUMN ─── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderLeft: '1px solid hsl(var(--border))', paddingLeft: '2rem' }} className="modal-right-col">
+        <div className="modal-right-col">
 
           {!userProfile ? (
             /* Guest mode: show CTA to sign in */

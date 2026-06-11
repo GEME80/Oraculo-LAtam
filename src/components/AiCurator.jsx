@@ -1537,7 +1537,7 @@ export default function AiCurator({ onMarketLaunched }) {
                       <label style={labelStyle}>Descripción / Reglas de Resolución</label>
                       <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} style={{ ...inputStyle, height: '80px', resize: 'vertical' }} />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                    <div className="grid-2col-responsive">
                       <div>
                         <label style={labelStyle}>Opción A</label>
                         <input type="text" value={editOptionA} onChange={e => setEditOptionA(e.target.value)} style={inputStyle} />
@@ -1547,7 +1547,7 @@ export default function AiCurator({ onMarketLaunched }) {
                         <input type="text" value={editOptionB} onChange={e => setEditOptionB(e.target.value)} style={inputStyle} />
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                    <div className="grid-2col-responsive">
                       <div>
                         <label style={labelStyle}><Calendar size={10} /> Fecha de Inicio</label>
                         <input type="datetime-local" value={editStartDate} onChange={e => setEditStartDate(e.target.value)} style={inputStyle} />
@@ -1655,7 +1655,7 @@ export default function AiCurator({ onMarketLaunched }) {
             </div>
 
             {/* Category + Country */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid-2col-responsive">
               <div>
                 <label style={labelStyle}><Globe size={10} /> Categoría</label>
                 <select value={manualForm.category} onChange={e => updateManual('category', e.target.value)} style={inputStyle}>
@@ -1671,7 +1671,7 @@ export default function AiCurator({ onMarketLaunched }) {
             </div>
 
             {/* Options */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid-2col-responsive">
               <div>
                 <label style={{ ...labelStyle, color: 'hsl(var(--yes-color))' }}>✅ Etiqueta Opción A *</label>
                 <input type="text" value={manualForm.option_a_label} onChange={e => updateManual('option_a_label', e.target.value)} style={{ ...inputStyle, borderColor: manualErrors.option_a_label ? '#ef4444' : undefined }} placeholder="SÍ" />
@@ -1685,7 +1685,7 @@ export default function AiCurator({ onMarketLaunched }) {
             </div>
 
             {/* Dates */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid-2col-responsive">
               <div>
                 <label style={labelStyle}><Calendar size={10} /> Fecha de Inicio</label>
                 <input type="datetime-local" value={manualForm.start_date} onChange={e => updateManual('start_date', e.target.value)} style={inputStyle} />

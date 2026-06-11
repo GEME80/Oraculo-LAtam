@@ -870,20 +870,7 @@ export default function App() {
 
             {/* ── Guest Welcome Banner ── */}
             {!userProfile && (
-              <div style={{
-                background: 'linear-gradient(135deg, hsl(var(--brand) / 0.12) 0%, hsl(var(--brand) / 0.04) 100%)',
-                border: '1px solid hsl(var(--brand) / 0.3)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1.25rem 1.5rem',
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
+              <div className="welcome-banner">
                 {/* Decorative glow */}
                 <div style={{
                   position: 'absolute', top: '-40px', right: '-40px',
@@ -922,47 +909,16 @@ export default function App() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
+                <div className="welcome-banner-actions">
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid hsl(var(--brand) / 0.6)',
-                      color: 'hsl(var(--brand))',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '0.55rem 1.1rem',
-                      fontWeight: 700,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      whiteSpace: 'nowrap'
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = 'hsl(var(--brand) / 0.08)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
+                    className="welcome-banner-btn-secondary"
                   >
                     Ya tengo cuenta
                   </button>
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    style={{
-                      background: 'hsl(var(--brand))',
-                      border: 'none',
-                      color: 'white',
-                      borderRadius: 'var(--radius-md)',
-                      padding: '0.55rem 1.25rem',
-                      fontWeight: 800,
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 16px hsl(var(--brand) / 0.35)',
-                      transition: 'transform 0.15s, opacity 0.15s',
-                      whiteSpace: 'nowrap'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                    className="welcome-banner-btn-primary"
                   >
                     🚀 Crear cuenta gratis
                   </button>

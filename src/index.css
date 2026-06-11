@@ -365,7 +365,7 @@ h1, h2, h3, h4, h5, h6 {
 /* CARDS AND CONTAINER QUERIES */
 .markets-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
   container-type: inline-size;
   container-name: grid-container;
@@ -1829,4 +1829,207 @@ dialog.trading-modal {
 .order-type-tab:hover:not(:disabled) {
   color: hsl(var(--brand)) !important;
 }
+
+/* =============================================
+   MOBILE RESPONSIVENESS & UX ADJUSTMENTS
+   ============================================= */
+
+/* Ocultar columnas no críticas en pantallas pequeñas */
+@media (max-width: 640px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Grilla genérica responsiva de 2 columnas (1 col en mobile, 2 col en desktop) */
+.grid-2col-responsive {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .grid-2col-responsive {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Grilla de Perfil de Usuario */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .profile-grid {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+/* Layout de Detalle de Mercado (MarketDetailModal) */
+.detail-split-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .detail-split-layout {
+    grid-template-columns: 1.3fr 1fr;
+    gap: 2rem;
+  }
+}
+
+.modal-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-top: 1px solid hsl(var(--border));
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .modal-right-col {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+    border-left: 1px solid hsl(var(--border));
+    padding-left: 2rem;
+  }
+}
+
+/* Banner de bienvenida responsivo */
+.welcome-banner {
+  background: linear-gradient(135deg, hsl(var(--brand) / 0.12) 0%, hsl(var(--brand) / 0.04) 100%);
+  border: 1px solid hsl(var(--brand) / 0.3);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-banner-actions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  flex-direction: column;
+  z-index: 1;
+}
+
+.welcome-banner-btn-secondary {
+  background: transparent;
+  border: 1px solid hsl(var(--brand) / 0.6);
+  color: hsl(var(--brand));
+  border-radius: var(--radius-md);
+  padding: 0.55rem 1.1rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  width: 100%;
+  text-align: center;
+}
+
+.welcome-banner-btn-secondary:hover {
+  background: hsl(var(--brand) / 0.08);
+}
+
+.welcome-banner-btn-primary {
+  background: hsl(var(--brand));
+  border: none;
+  color: white;
+  border-radius: var(--radius-md);
+  padding: 0.55rem 1.25rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px hsl(var(--brand) / 0.35);
+  transition: transform 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  width: 100%;
+  text-align: center;
+}
+
+.welcome-banner-btn-primary:hover {
+  transform: scale(1.03);
+}
+
+@media (min-width: 640px) {
+  .welcome-banner {
+    padding: 1.25rem 1.5rem;
+  }
+  
+  .welcome-banner-actions {
+    width: auto;
+    flex-direction: row;
+    flex-shrink: 0;
+  }
+  
+  .welcome-banner-btn-secondary,
+  .welcome-banner-btn-primary {
+    width: auto;
+  }
+}
+
+/* Grilla responsiva de Tienda de Alianzas (RewardShop) */
+.sponsor-form-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.sponsor-form-cols-three {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .sponsor-form-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sponsor-form-cols-three {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* Ajustes generales de spacing y diseño en móviles */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 0.75rem !important;
+  }
+  
+  dialog.trading-modal {
+    padding: 1.25rem 1rem !important;
+  }
+  
+  .app-header {
+    padding: 0.6rem 0.75rem !important;
+  }
+  
+  .nav-tabs {
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .search-box {
+    max-width: none !important;
+    width: 100% !important;
+  }
+}
+
 
