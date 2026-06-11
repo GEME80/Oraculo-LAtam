@@ -1451,24 +1451,23 @@ dialog.trading-modal {
   }
 }
 
-/* Auth Modal Mode: compact, no full-page background */
+/* Auth Modal Mode: diseño completo de dos columnas igual que la pantalla de auth */
 .auth-modal-mode {
   display: block;
   padding: 0;
 }
 
 .auth-modal-mode .auth-container {
+  max-width: 860px;
   border-radius: var(--radius-lg);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-  max-width: 480px;
-  width: 100%;
-  /* Single column: hide brand panel, show only form */
-  grid-template-columns: 1fr;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+  /* Always show two columns in the modal */
+  grid-template-columns: 1fr 1fr;
 }
 
-/* In modal mode, always hide the brand-panel (too wide) */
+/* In modal mode, always show the brand-panel (override the mobile hide) */
 .auth-modal-mode .brand-panel {
-  display: none !important;
+  display: flex !important;
 }
 
 /* Tooltip container and display styling */

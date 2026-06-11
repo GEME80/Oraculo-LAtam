@@ -670,24 +670,26 @@ export default function App() {
         <div
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.72)',
-            backdropFilter: 'blur(6px)',
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '1rem'
+            padding: '1.5rem'
           }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowAuthModal(false); }}
         >
-          <div style={{ position: 'relative', width: '100%', maxWidth: '480px' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '900px' }}>
             <button
               onClick={() => setShowAuthModal(false)}
               style={{
-                position: 'absolute', top: '-2.5rem', right: 0,
-                background: 'hsl(var(--bg-elevated))',
-                border: '1px solid hsl(var(--border))',
-                color: 'hsl(var(--text-muted))',
-                borderRadius: '50%', width: '2rem', height: '2rem',
+                position: 'absolute', top: '-2.75rem', right: 0,
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                color: 'white',
+                borderRadius: '50%', width: '2.25rem', height: '2.25rem',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', zIndex: 1
+                cursor: 'pointer', zIndex: 1,
+                backdropFilter: 'blur(4px)',
+                transition: 'background 0.2s'
               }}
               title="Cerrar"
             >
@@ -879,7 +881,111 @@ export default function App() {
         
         {activeTab === 'markets' && (
           <div className="markets-container">
+
+            {/* ── Guest Welcome Banner ── */}
+            {!userProfile && (
+              <div style={{
+                background: 'linear-gradient(135deg, hsl(var(--brand) / 0.12) 0%, hsl(var(--brand) / 0.04) 100%)',
+                border: '1px solid hsl(var(--brand) / 0.3)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Decorative glow */}
+                <div style={{
+                  position: 'absolute', top: '-40px', right: '-40px',
+                  width: '160px', height: '160px',
+                  background: 'hsl(var(--brand) / 0.15)',
+                  borderRadius: '50%',
+                  filter: 'blur(40px)',
+                  pointerEvents: 'none'
+                }} />
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: '200px' }}>
+                  <div style={{
+                    fontSize: '2rem',
+                    lineHeight: 1,
+                    flexShrink: 0,
+                    filter: 'drop-shadow(0 2px 6px hsl(var(--brand) / 0.4))'
+                  }}>🎯</div>
+                  <div>
+                    <div style={{
+                      fontWeight: 800,
+                      fontSize: '1rem',
+                      color: 'hsl(var(--text-main))',
+                      marginBottom: '0.2rem'
+                    }}>
+                      ¡Comienza a predecir el futuro de LATAM!
+                    </div>
+                    <div style={{
+                      fontSize: '0.82rem',
+                      color: 'hsl(var(--text-muted))',
+                      lineHeight: 1.4
+                    }}>
+                      Regístrate gratis y recibe{' '}
+                      <strong style={{ color: 'hsl(var(--brand))' }}>1,000 créditos de bienvenida</strong>
+                      {' '}para hacer tus primeras predicciones.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid hsl(var(--brand) / 0.6)',
+                      color: 'hsl(var(--brand))',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.55rem 1.1rem',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'hsl(var(--brand) / 0.08)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    Ya tengo cuenta
+                  </button>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    style={{
+                      background: 'hsl(var(--brand))',
+                      border: 'none',
+                      color: 'white',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.55rem 1.25rem',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 16px hsl(var(--brand) / 0.35)',
+                      transition: 'transform 0.15s, opacity 0.15s',
+                      whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  >
+                    🚀 Crear cuenta gratis
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Filter and search panel */}
+
             <div className="filters-bar">
               <div className="category-filters">
                 {CATEGORIES.map(cat => {
