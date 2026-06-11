@@ -609,6 +609,23 @@ const mockSupabaseClient = {
       return { data: { user: null }, error: null };
     },
 
+    // getSession: mirrors getUser for mock mode — returns session wrapper
+    getSession: async () => {
+      const currentUserId = localStorage.getItem('oraculo_current_user_id');
+      if (!currentUserId) {
+        return { data: { session: null }, error: null };
+      }
+      const profiles = JSON.parse(localStorage.getItem('oraculo_profiles') || '[]');
+      const found = profiles.find(p => p.id === currentUserId);
+      if (found) {
+        const authUsers = JSON.parse(localStorage.getItem('oraculo_auth_users') || '[]');
+        const authUser = authUsers.find(u => u.id === currentUserId);
+        const email = authUser ? authUser.email : `${found.username.toLowerCase()}@oraculo.com`;
+        return { data: { session: { user: { id: found.id, email } } }, error: null };
+      }
+      return { data: { session: null }, error: null };
+    },
+
     signUp: async ({ email, password, options }) => {
       const username = options?.data?.username || email.split('@')[0];
       const country = options?.data?.country || 'CO';

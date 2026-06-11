@@ -137,8 +137,12 @@ export default function App() {
 
     // Listen for Supabase auth state changes (handles OAuth redirects in production)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Oraculo] Auth event:', event);
+      if (event === 'INITIAL_SESSION') {
+        // Already handled by initializeSession(), skip to avoid double-fetch
+        return;
+      }
       if (event === 'SIGNED_IN' && session?.user) {
-        // Re-initialize to load profile after successful login
         initializeSession();
       } else if (event === 'SIGNED_OUT') {
         setUserProfile(null);
@@ -210,12 +214,13 @@ export default function App() {
 
   const initializeSession = async () => {
     try {
-      // Get user from Supabase auth (mock or real)
-      const { data, error: authError } = await supabase.auth.getUser();
-      const user = data?.user;
+      // Use getSession() — reads from localStorage cache, reliable in production
+      // getUser() makes a network call and can throw for anonymous users
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
 
-      if (authError && !user) {
-        // No valid session (expected for guests) — load markets as guest
+      if (sessionError) {
+        console.warn('[Oraculo] Session error (treating as guest):', sessionError.message);
         setUserProfile(null);
         fetchMarkets();
         return;
@@ -242,25 +247,22 @@ export default function App() {
             accuracy_rate: 0.00,
             predictions_count: 0
           };
-          const { data: inserted, error: insertError } = await supabase
-            .from('profiles')
-            .insert(defaultProf);
-          
+          await supabase.from('profiles').insert(defaultProf);
           profile = defaultProf;
         }
 
         setUserProfile(profile);
-        setShowAuthModal(false); // Close auth modal on successful login
+        setShowAuthModal(false);
         fetchMarkets();
         fetchPositions(profile.id);
         fetchLimitOrders(profile.id);
       } else {
-        // No user — guest mode: load markets without profile
+        // No session — guest mode: load markets without profile
         setUserProfile(null);
         fetchMarkets();
       }
     } catch (err) {
-      console.error('Session initialization error:', err);
+      console.error('[Oraculo] Session initialization error:', err);
       // Even on unexpected error, load markets for guest browsing
       setUserProfile(null);
       fetchMarkets();
