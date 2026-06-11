@@ -1167,6 +1167,31 @@ const mockSupabaseClient = {
       return { data: null, error: null };
     }
     return { data: null, error: { message: `Function ${functionName} not implemented in mock.` } };
+  },
+  storage: {
+    from: (bucketName) => ({
+      upload: async (path, file) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64 = reader.result;
+            const storageCache = JSON.parse(localStorage.getItem('oraculo_mock_storage') || '{}');
+            storageCache[`${bucketName}/${path}`] = base64;
+            localStorage.setItem('oraculo_mock_storage', JSON.stringify(storageCache));
+            resolve({ data: { path }, error: null });
+          };
+          reader.onerror = () => {
+            resolve({ data: null, error: { message: 'Error al leer el archivo en la simulación.' } });
+          };
+          reader.readAsDataURL(file);
+        });
+      },
+      getPublicUrl: (path) => {
+        const storageCache = JSON.parse(localStorage.getItem('oraculo_mock_storage') || '{}');
+        const publicUrl = storageCache[`${bucketName}/${path}`] || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=400&q=80';
+        return { data: { publicUrl } };
+      }
+    })
   }
 };
 

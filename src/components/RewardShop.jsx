@@ -17,6 +17,7 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
   const [rewStock, setRewStock] = useState('');
   const [rewDesc, setRewDesc] = useState('');
   const [rewImgUrl, setRewImgUrl] = useState('');
+  const [imageFile, setImageFile] = useState(null);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -31,11 +32,8 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setRewImgUrl(reader.result);
-    };
-    reader.readAsDataURL(file);
+    setImageFile(file);
+    setRewImgUrl(URL.createObjectURL(file));
   };
 
   useEffect(() => {
@@ -116,13 +114,42 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
       return;
     }
 
+    let finalImageUrl = rewImgUrl;
+
+    if (imageFile) {
+      try {
+        const fileExt = imageFile.name.split('.').pop();
+        const cleanName = imageFile.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 15);
+        const fileName = `${Date.now()}-${cleanName}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        // Subir al bucket "rewards" de Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('rewards')
+          .upload(filePath, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        // Obtener la URL pública de la imagen
+        const { data: urlData } = supabase.storage
+          .from('rewards')
+          .getPublicUrl(filePath);
+
+        finalImageUrl = urlData.publicUrl;
+      } catch (uploadErr) {
+        console.error('Error al subir la imagen:', uploadErr);
+        await Dialog.alert('Error al subir la imagen al servidor de almacenamiento.');
+        return;
+      }
+    }
+
     const rewardData = {
       title: rewTitle.trim(),
       provider: rewProvider.trim(),
       cost: parseFloat(rewCost),
       stock: parseInt(rewStock, 10),
       description: rewDesc.trim(),
-      image_url: rewImgUrl.trim() || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=400&q=80'
+      image_url: finalImageUrl.trim() || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=400&q=80'
     };
 
     try {
@@ -150,6 +177,7 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
       setRewStock('');
       setRewDesc('');
       setRewImgUrl('');
+      setImageFile(null);
       setEditingRewardId(null);
       await fetchRewards();
     } catch (err) {
@@ -177,6 +205,7 @@ export default function RewardShop({ userProfile, onProfileUpdate }) {
     setRewStock('');
     setRewDesc('');
     setRewImgUrl('');
+    setImageFile(null);
   };
 
   const handleDeleteReward = async (rewardId) => {
