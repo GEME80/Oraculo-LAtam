@@ -948,35 +948,58 @@ const mockSupabaseClient = {
 
     return {
       select: (query = '*') => {
-        let result = getData();
-        
-        return {
+        const filters = [];
+        let orderField = null;
+        let orderAscending = false;
+        let isSingle = false;
+
+        const chain = {
           eq: (field, value) => {
-            result = result.filter(item => item[field] === value);
-            return {
-              single: () => ({ data: result[0] || null, error: result[0] ? null : { message: 'Not found' } }),
-              data: result,
-              error: null
-            };
+            filters.push({ type: 'eq', field, value });
+            return chain;
+          },
+          neq: (field, value) => {
+            filters.push({ type: 'neq', field, value });
+            return chain;
           },
           order: (field, { ascending = false } = {}) => {
-            if (field) {
+            orderField = field;
+            orderAscending = ascending;
+            return chain;
+          },
+          single: () => {
+            isSingle = true;
+            return chain;
+          },
+          then: (resolve) => {
+            let result = getData();
+            filters.forEach(f => {
+              if (f.type === 'eq') {
+                result = result.filter(item => item[f.field] === f.value);
+              } else if (f.type === 'neq') {
+                result = result.filter(item => item[f.field] !== f.value);
+              }
+            });
+            if (orderField) {
               result.sort((a, b) => {
-                const valA = a[field];
-                const valB = b[field];
-                if (valA === undefined || valA === null) return ascending ? 1 : -1;
-                if (valB === undefined || valB === null) return ascending ? -1 : 1;
+                const valA = a[orderField];
+                const valB = b[orderField];
+                if (valA === undefined || valA === null) return orderAscending ? 1 : -1;
+                if (valB === undefined || valB === null) return orderAscending ? -1 : 1;
                 if (typeof valA === 'string') {
-                  return ascending ? valA.localeCompare(valB || '') : (valB || '').localeCompare(valA);
+                  return orderAscending ? valA.localeCompare(valB || '') : (valB || '').localeCompare(valA);
                 }
-                return ascending ? (valA - valB) : (valB - valA);
+                return orderAscending ? (valA - valB) : (valB - valA);
               });
             }
-            return { data: result, error: null };
-          },
-          data: result,
-          error: null
+            if (isSingle) {
+              resolve({ data: result[0] || null, error: result[0] ? null : { message: 'Not found' } });
+            } else {
+              resolve({ data: result, error: null });
+            }
+          }
         };
+        return chain;
       },
       insert: (record) => {
         const data = getData();
@@ -1078,11 +1101,17 @@ const mockSupabaseClient = {
         return { data: newRecords, error: null };
       },
       update: (updates) => {
-        return {
+        const filters = [];
+        const chain = {
           eq: (field, value) => {
+            filters.push({ field, value });
+            return chain;
+          },
+          then: (resolve) => {
             const data = getData();
             const updated = data.map(item => {
-              if (item[field] === value) {
+              const matches = filters.every(f => item[f.field] === f.value);
+              if (matches) {
                 // If this is the markets table and yes_price is updated, record history (trigger simulation)
                 if (table === 'markets' && updates.yes_price !== undefined && parseFloat(item.yes_price) !== parseFloat(updates.yes_price)) {
                   const history = JSON.parse(localStorage.getItem('oraculo_price_history') || '[]');
@@ -1102,7 +1131,6 @@ const mockSupabaseClient = {
                   if (profileIdx > -1) {
                     const profile = profiles[profileIdx];
                     const orderCost = (parseFloat(item.limit_price) * parseFloat(item.contract_count)) / 100.0;
-                    // Refund for both 'cancelled' (permanent) and 'filled' (temporary before transaction deducts actual price)
                     profile.orc_balance = parseFloat(profile.orc_balance) + orderCost;
                     profiles[profileIdx] = profile;
                     localStorage.setItem('oraculo_profiles', JSON.stringify(profiles));
@@ -1113,9 +1141,11 @@ const mockSupabaseClient = {
               return item;
             });
             setData(updated);
-            return { data: updated.filter(item => item[field] === value), error: null };
+            const affected = updated.filter(item => filters.every(f => item[f.field] === f.value));
+            resolve({ data: affected, error: null });
           }
         };
+        return chain;
       },
       upsert: (record) => {
         const data = getData();
@@ -1136,14 +1166,22 @@ const mockSupabaseClient = {
         return { data: records, error: null };
       },
       delete: () => {
-        return {
+        const filters = [];
+        const chain = {
           eq: (field, value) => {
+            filters.push({ field, value });
+            return chain;
+          },
+          then: (resolve) => {
             const data = getData();
-            const filtered = data.filter(item => item[field] !== value);
+            const filtered = data.filter(item => {
+              return !filters.every(f => item[f.field] === f.value);
+            });
             setData(filtered);
-            return { data: filtered, error: null };
+            resolve({ data: [], error: null });
           }
         };
+        return chain;
       }
     };
   },

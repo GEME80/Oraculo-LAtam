@@ -15,7 +15,9 @@ import {
   Activity,
   Trash2,
   X,
-  Newspaper
+  Newspaper,
+  ArrowLeft,
+  Coins
 } from 'lucide-react';
 
 const COUNTRY_FLAGS = {
@@ -45,9 +47,21 @@ export default function AdminPanel({ onMarketApproved, onMarketResolved }) {
   const [addingAdmin, setAddingAdmin] = useState(false);
   const [resolvingMktId, setResolvingMktId] = useState(null);
 
+  // Investor Management states
+  const [investorProfiles, setInvestorProfiles] = useState([]);
+  const [selectedInvestor, setSelectedInvestor] = useState(null);
+  const [investorPositions, setInvestorPositions] = useState([]);
+  const [investorRedemptions, setInvestorRedemptions] = useState([]);
+  const [rewardsList, setRewardsList] = useState([]);
+  const [investorSearch, setInvestorSearch] = useState('');
+  const [creditAdjustmentAmount, setCreditAdjustmentAmount] = useState('');
+  const [repAdjustmentAmount, setRepAdjustmentAmount] = useState('');
+
   useEffect(() => {
     if (adminActiveTab === 'admins') {
       fetchAdminProfiles();
+    } else if (adminActiveTab === 'investors') {
+      fetchInvestorProfiles();
     }
   }, [adminActiveTab]);
 
@@ -320,6 +334,265 @@ export default function AdminPanel({ onMarketApproved, onMarketResolved }) {
     }
   };
 
+  const fetchInvestorProfiles = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+      if (error) throw error;
+      if (data) {
+        setInvestorProfiles(data.filter(p => p.role !== 'admin'));
+      }
+    } catch (err) {
+      console.error('Error fetching investor profiles:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInspectInvestor = async (investor) => {
+    try {
+      setLoading(true);
+      setSelectedInvestor(investor);
+      setCreditAdjustmentAmount('');
+      setRepAdjustmentAmount('');
+
+      // Fetch positions for the selected investor
+      const { data: posData, error: posErr } = await supabase
+        .from('user_positions')
+        .select('*')
+        .eq('profile_id', investor.id);
+      if (posErr) throw posErr;
+      setInvestorPositions(posData || []);
+
+      // Fetch redemptions for the selected investor
+      const { data: redData, error: redErr } = await supabase
+        .from('redemptions')
+        .select('*')
+        .eq('profile_id', investor.id);
+      if (redErr) throw redErr;
+      setInvestorRedemptions(redData || []);
+
+      // Fetch rewards list so we can resolve reward titles
+      const { data: rewData, error: rewErr } = await supabase
+        .from('rewards')
+        .select('*');
+      if (rewErr) throw rewErr;
+      setRewardsList(rewData || []);
+
+    } catch (err) {
+      console.error('Error inspecting investor:', err);
+      await Dialog.alert('Error al cargar la información detallada del inversionista.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdjustBalance = async (e) => {
+    e.preventDefault();
+    if (!selectedInvestor) return;
+    const amount = parseFloat(creditAdjustmentAmount);
+    if (isNaN(amount) || amount === 0) {
+      await Dialog.alert('Por favor ingresa un monto válido (positivo o negativo) diferente de cero.');
+      return;
+    }
+
+    const currentBalance = parseFloat(selectedInvestor.orc_balance || 0);
+    const newBalance = Math.max(0, currentBalance + amount);
+
+    const actionText = amount > 0 ? `sumar ${amount}` : `restar ${Math.abs(amount)}`;
+    const confirm = await Dialog.confirm(`¿Estás seguro de que deseas ${actionText} créditos al saldo de ${selectedInvestor.username}? Nuevo saldo: ${newBalance} créditos.`);
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ orc_balance: newBalance })
+        .eq('id', selectedInvestor.id);
+
+      if (error) throw error;
+
+      await Dialog.alert('¡Saldo ajustado correctamente!');
+      setCreditAdjustmentAmount('');
+      
+      const updatedInvestor = { ...selectedInvestor, orc_balance: newBalance };
+      setSelectedInvestor(updatedInvestor);
+      setInvestorProfiles(prev => prev.map(p => p.id === selectedInvestor.id ? updatedInvestor : p));
+    } catch (err) {
+      console.error('Error adjusting balance:', err);
+      await Dialog.alert('Error al ajustar el saldo del inversionista.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdjustReputation = async (e) => {
+    e.preventDefault();
+    if (!selectedInvestor) return;
+    const amount = parseInt(repAdjustmentAmount, 10);
+    if (isNaN(amount) || amount === 0) {
+      await Dialog.alert('Por favor ingresa una cantidad de puntos válida (positiva o negativa) diferente de cero.');
+      return;
+    }
+
+    const currentRep = parseInt(selectedInvestor.reputation_points || 0, 10);
+    const newRep = Math.max(0, currentRep + amount);
+
+    const actionText = amount > 0 ? `sumar ${amount}` : `restar ${Math.abs(amount)}`;
+    const confirm = await Dialog.confirm(`¿Estás seguro de que deseas ${actionText} puntos de reputación a ${selectedInvestor.username}? Nueva reputación: ${newRep} puntos.`);
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ reputation_points: newRep })
+        .eq('id', selectedInvestor.id);
+
+      if (error) throw error;
+
+      await Dialog.alert('¡Puntos de reputación ajustados correctamente!');
+      setRepAdjustmentAmount('');
+      
+      const updatedInvestor = { ...selectedInvestor, reputation_points: newRep };
+      setSelectedInvestor(updatedInvestor);
+      setInvestorProfiles(prev => prev.map(p => p.id === selectedInvestor.id ? updatedInvestor : p));
+    } catch (err) {
+      console.error('Error adjusting reputation:', err);
+      await Dialog.alert('Error al ajustar la reputación del inversionista.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefundPosition = async (pos) => {
+    const market = markets.find(m => m.id === pos.market_id);
+    const marketTitle = market ? market.title : 'Mercado Desconocido';
+    const yesCost = (parseFloat(pos.yes_shares || 0) * parseFloat(pos.avg_price_yes || 0)) / 100.0;
+    const noCost = (parseFloat(pos.no_shares || 0) * parseFloat(pos.avg_price_no || 0)) / 100.0;
+    const refundAmount = yesCost + noCost;
+
+    if (refundAmount <= 0) {
+      await Dialog.alert('Esta posición no tiene un costo calculable para reembolsar.');
+      return;
+    }
+
+    const confirm = await Dialog.confirm(`¿Estás seguro de que deseas reembolsar esta predicción en el mercado "${marketTitle}"?\nSe le reintegrarán ${refundAmount.toFixed(2)} créditos a ${selectedInvestor.username} y se eliminará su posición.`);
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+
+      const newBalance = parseFloat(selectedInvestor.orc_balance || 0) + refundAmount;
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ orc_balance: newBalance })
+        .eq('id', selectedInvestor.id);
+
+      if (profileErr) throw profileErr;
+
+      const { error: deleteErr } = await supabase
+        .from('user_positions')
+        .delete()
+        .eq('profile_id', selectedInvestor.id)
+        .eq('market_id', pos.market_id);
+
+      if (deleteErr) throw deleteErr;
+
+      await Dialog.alert(`¡Posición reembolsada con éxito! Se acreditaron ${refundAmount.toFixed(2)} créditos.`);
+
+      const updatedInvestor = { ...selectedInvestor, orc_balance: newBalance };
+      setSelectedInvestor(updatedInvestor);
+      setInvestorProfiles(prev => prev.map(p => p.id === selectedInvestor.id ? updatedInvestor : p));
+      setInvestorPositions(prev => prev.filter(p => p.market_id !== pos.market_id));
+
+    } catch (err) {
+      console.error('Error refunding position:', err);
+      await Dialog.alert('Error al procesar el reembolso de la posición.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteRedemption = async (redemption) => {
+    const reward = rewardsList.find(r => r.id === redemption.reward_id);
+    const rewardTitle = reward ? reward.title : 'Premio Desconocido';
+
+    const confirm = await Dialog.confirm(`¿Estás seguro de que deseas marcar como ENTREGADO el canje de "${rewardTitle}" para el usuario ${selectedInvestor.username}?`);
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('redemptions')
+        .update({ status: 'completed' })
+        .eq('id', redemption.id);
+
+      if (error) throw error;
+
+      await Dialog.alert('¡Canje marcado como entregado con éxito!');
+      setInvestorRedemptions(prev => prev.map(r => r.id === redemption.id ? { ...r, status: 'completed' } : r));
+    } catch (err) {
+      console.error('Error completing redemption:', err);
+      await Dialog.alert('Error al completar el canje.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelRedemption = async (redemption) => {
+    const reward = rewardsList.find(r => r.id === redemption.reward_id);
+    const rewardTitle = reward ? reward.title : 'Premio Desconocido';
+    const rewardCost = reward ? parseFloat(reward.cost || 0) : 0;
+
+    const confirm = await Dialog.confirm(`¿Estás seguro de que deseas CANCELAR y REEMBOLSAR el canje de "${rewardTitle}" para ${selectedInvestor.username}?\nSe le reintegrarán ${rewardCost} créditos al usuario y se devolverá 1 unidad al stock del premio.`);
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+
+      const newBalance = parseFloat(selectedInvestor.orc_balance || 0) + rewardCost;
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ orc_balance: newBalance })
+        .eq('id', selectedInvestor.id);
+
+      if (profileErr) throw profileErr;
+
+      if (reward) {
+        const newStock = parseInt(reward.stock || 0, 10) + 1;
+        const { error: rewardErr } = await supabase
+          .from('rewards')
+          .update({ stock: newStock })
+          .eq('id', reward.id);
+        if (rewardErr) throw rewardErr;
+        setRewardsList(prev => prev.map(r => r.id === reward.id ? { ...r, stock: newStock } : r));
+      }
+
+      const { error: deleteErr } = await supabase
+        .from('redemptions')
+        .delete()
+        .eq('id', redemption.id);
+
+      if (deleteErr) throw deleteErr;
+
+      await Dialog.alert(`¡Canje cancelado y reembolsado con éxito! Se reintegraron ${rewardCost} créditos.`);
+
+      const updatedInvestor = { ...selectedInvestor, orc_balance: newBalance };
+      setSelectedInvestor(updatedInvestor);
+      setInvestorProfiles(prev => prev.map(p => p.id === selectedInvestor.id ? updatedInvestor : p));
+      setInvestorRedemptions(prev => prev.filter(r => r.id !== redemption.id));
+
+    } catch (err) {
+      console.error('Error cancelling redemption:', err);
+      await Dialog.alert('Error al cancelar el canje.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddAdmin = async (e) => {
     e.preventDefault();
     if (!newAdminEmail.trim() || addingAdmin) return;
@@ -454,6 +727,13 @@ export default function AdminPanel({ onMarketApproved, onMarketResolved }) {
     window.location.reload();
   };
 
+  const filteredInvestors = investorProfiles.filter(p => {
+    const search = investorSearch.toLowerCase();
+    const usernameMatch = p.username && p.username.toLowerCase().includes(search);
+    const emailMatch = p.email && p.email.toLowerCase().includes(search);
+    return usernameMatch || emailMatch;
+  });
+
   if (loading) {
     return <div style={{ textAlign: 'center', padding: '3rem', color: 'hsl(var(--text-muted))' }}>Cargando panel de administrador...</div>;
   }
@@ -551,6 +831,26 @@ export default function AdminPanel({ onMarketApproved, onMarketResolved }) {
           }}
         >
           Gestión de Administradores
+        </button>
+        <button
+          onClick={() => {
+            setAdminActiveTab('investors');
+            setSelectedInvestor(null);
+          }}
+          style={{
+            padding: '0.5rem 1.25rem',
+            background: adminActiveTab === 'investors' ? 'hsl(var(--brand))' : 'transparent',
+            color: adminActiveTab === 'investors' ? 'white' : 'hsl(var(--text-muted))',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            transition: 'all 0.25s ease',
+            boxShadow: adminActiveTab === 'investors' ? '0 4px 12px hsl(var(--brand) / 0.25)' : 'none'
+          }}
+        >
+          Gestión de Inversores
         </button>
       </div>
 
@@ -1021,6 +1321,502 @@ export default function AdminPanel({ onMarketApproved, onMarketResolved }) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {adminActiveTab === 'investors' && (
+        <div className="leaderboard-view" style={{ padding: '1.5rem' }}>
+          {selectedInvestor === null ? (
+            // LIST VIEW
+            <>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.75rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={18} style={{ color: 'hsl(var(--brand))' }} />
+                Consola de Gestión de Inversores
+              </h3>
+
+              {/* Buscador */}
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar inversor por nombre o correo..."
+                  value={investorSearch}
+                  onChange={(e) => setInvestorSearch(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '0.6rem 0.8rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid hsl(var(--border))',
+                    background: 'hsl(var(--bg-card))',
+                    color: 'hsl(var(--text-main))',
+                    fontSize: '0.85rem'
+                  }}
+                />
+                {investorSearch && (
+                  <button
+                    onClick={() => setInvestorSearch('')}
+                    style={{
+                      padding: '0.6rem 1rem',
+                      background: 'transparent',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'hsl(var(--text-muted))',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              {/* Tabla de Inversores */}
+              <div className="leaderboard-table-container">
+                <table className="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '25%' }}>Inversor</th>
+                      <th style={{ width: '25%' }}>Correo Electrónico</th>
+                      <th style={{ width: '15%' }}>Saldo (Créditos)</th>
+                      <th style={{ width: '12%' }}>Reputación</th>
+                      <th style={{ width: '13%' }}>Acierto / Total</th>
+                      <th style={{ width: '10%' }}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInvestors.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'hsl(var(--text-muted))', fontSize: '0.85rem' }}>
+                          No se encontraron inversionistas.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredInvestors.map((p) => (
+                        <tr key={p.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <img 
+                                src={p.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${p.username || 'U'}`} 
+                                alt={p.username} 
+                                style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid hsl(var(--border))' }}
+                              />
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'white' }}>
+                                  {p.username || 'N/A'} {COUNTRY_FLAGS[p.country] || ''}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))' }}>{p.email || 'N/A'}</td>
+                          <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'hsl(var(--brand))' }}>
+                            {parseFloat(p.orc_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ORC
+                          </td>
+                          <td style={{ fontSize: '0.85rem', fontWeight: 700, color: 'hsl(var(--yes-color))' }}>
+                            {p.reputation_points || 0} pts
+                          </td>
+                          <td style={{ fontSize: '0.85rem', color: 'hsl(var(--text-muted))' }}>
+                            {p.accuracy_rate || 0}% ({p.predictions_count || 0})
+                          </td>
+                          <td>
+                            <button
+                              onClick={() => handleInspectInvestor(p)}
+                              style={{
+                                padding: '0.4rem 0.75rem',
+                                background: 'hsl(var(--brand) / 0.12)',
+                                color: 'hsl(var(--brand))',
+                                border: '1px solid hsl(var(--brand) / 0.25)',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                fontWeight: 700
+                              }}
+                            >
+                              Inspeccionar
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            // DETAIL / INSPECTION VIEW
+            <>
+              {/* Back button and Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <button
+                  onClick={() => setSelectedInvestor(null)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'transparent',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.4rem 0.8rem',
+                    color: 'white',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  <ArrowLeft size={16} /> Volver
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <img 
+                    src={selectedInvestor.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedInvestor.username}`} 
+                    alt={selectedInvestor.username} 
+                    style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid hsl(var(--brand))' }}
+                  />
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'white' }}>
+                      {selectedInvestor.username} {COUNTRY_FLAGS[selectedInvestor.country] || ''}
+                    </h3>
+                    <p style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', margin: 0 }}>
+                      ID: {selectedInvestor.id} | Rol: {selectedInvestor.role} | {selectedInvestor.email || 'Sin correo'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid Layout for details */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+                
+                {/* Adjustments Section */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                  
+                  {/* Credits adjustment Form */}
+                  <form onSubmit={handleAdjustBalance} style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid hsl(var(--border))', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Coins size={16} style={{ color: 'hsl(var(--brand))' }} />
+                      Ajuste de Créditos Virtuales
+                    </h4>
+                    <p style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', marginBottom: '1rem' }}>
+                      Suma o resta créditos directamente al balance del inversor. Usa signo negativo (-) para restar.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Ej. 100 o -50"
+                        value={creditAdjustmentAmount}
+                        onChange={(e) => setCreditAdjustmentAmount(e.target.value)}
+                        required
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid hsl(var(--border))',
+                          background: 'hsl(var(--bg-app))',
+                          color: 'white',
+                          fontSize: '0.85rem'
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'hsl(var(--brand))',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Reputation adjustment Form */}
+                  <form onSubmit={handleAdjustReputation} style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid hsl(var(--border))', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem', color: 'white', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Activity size={16} style={{ color: 'hsl(var(--yes-color))' }} />
+                      Ajuste de Reputación
+                    </h4>
+                    <p style={{ fontSize: '0.75rem', color: 'hsl(var(--text-muted))', marginBottom: '1rem' }}>
+                      Suma o resta puntos de reputación del inversor. Usa signo negativo (-) para restar.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="number"
+                        step="1"
+                        placeholder="Ej. 10 o -5"
+                        value={repAdjustmentAmount}
+                        onChange={(e) => setRepAdjustmentAmount(e.target.value)}
+                        required
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid hsl(var(--border))',
+                          background: 'hsl(var(--bg-app))',
+                          color: 'white',
+                          fontSize: '0.85rem'
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'hsl(var(--yes-color))',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </form>
+
+                </div>
+
+                {/* Predictions History / refund positions */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid hsl(var(--border))', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '0.75rem', color: 'white', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
+                    Historial de Predicciones y Posiciones Activas
+                  </h4>
+                  <div className="leaderboard-table-container">
+                    {investorPositions.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '1.5rem', color: 'hsl(var(--text-muted))', fontSize: '0.8rem' }}>
+                        No hay predicciones activas registradas para este usuario.
+                      </div>
+                    ) : (
+                      <table className="leaderboard-table">
+                        <thead>
+                          <tr>
+                            <th>Mercado</th>
+                            <th>Opción</th>
+                            <th>Contratos</th>
+                            <th>Precio Promedio</th>
+                            <th>Costo Calculado</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {investorPositions.flatMap((pos) => {
+                            const market = markets.find(m => m.id === pos.market_id);
+                            const marketTitle = market ? market.title : 'Mercado Desconocido';
+                            const marketStatus = market ? market.status : 'unknown';
+                            
+                            const hasYes = parseFloat(pos.yes_shares || 0) > 0;
+                            const hasNo = parseFloat(pos.no_shares || 0) > 0;
+                            
+                            const rows = [];
+                            if (hasYes) {
+                              const cost = (parseFloat(pos.yes_shares) * parseFloat(pos.avg_price_yes || 0)) / 100.0;
+                              rows.push(
+                                <tr key={`${pos.market_id}-YES`}>
+                                  <td style={{ fontSize: '0.8rem', fontWeight: 600 }}>{marketTitle}</td>
+                                  <td>
+                                    <span style={{
+                                      background: 'hsl(var(--yes-bg))',
+                                      color: 'hsl(var(--yes-color))',
+                                      padding: '0.15rem 0.4rem',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700
+                                    }}>
+                                      {market?.option_a_label || 'SÍ'}
+                                    </span>
+                                  </td>
+                                  <td style={{ fontSize: '0.8rem' }}>{pos.yes_shares} acc</td>
+                                  <td style={{ fontSize: '0.8rem' }}>{parseFloat(pos.avg_price_yes || 0).toFixed(1)}¢</td>
+                                  <td style={{ fontSize: '0.8rem', fontWeight: 700, color: 'hsl(var(--brand))' }}>
+                                    {cost.toFixed(2)} ORC
+                                  </td>
+                                  <td style={{ fontSize: '0.8rem' }}>
+                                    <span style={{
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      color: marketStatus === 'active' ? 'hsl(var(--yes-color))' : 'hsl(var(--text-muted))'
+                                    }}>
+                                      {marketStatus === 'active' ? 'ACTIVO' : 'CERRADO'}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <button
+                                      onClick={() => handleRefundPosition(pos)}
+                                      style={{
+                                        padding: '0.35rem 0.5rem',
+                                        background: 'hsl(var(--no-bg))',
+                                        color: 'hsl(var(--no-color))',
+                                        border: '1px solid hsl(var(--no-color) / 0.3)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700
+                                      }}
+                                    >
+                                      Reembolsar
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            }
+                            if (hasNo) {
+                              const cost = (parseFloat(pos.no_shares) * parseFloat(pos.avg_price_no || 0)) / 100.0;
+                              rows.push(
+                                <tr key={`${pos.market_id}-NO`}>
+                                  <td style={{ fontSize: '0.8rem', fontWeight: 600 }}>{marketTitle}</td>
+                                  <td>
+                                    <span style={{
+                                      background: 'hsl(var(--no-bg))',
+                                      color: 'hsl(var(--no-color))',
+                                      padding: '0.15rem 0.4rem',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700
+                                    }}>
+                                      {market?.option_b_label || 'NO'}
+                                    </span>
+                                  </td>
+                                  <td style={{ fontSize: '0.8rem' }}>{pos.no_shares} acc</td>
+                                  <td style={{ fontSize: '0.8rem' }}>{parseFloat(pos.avg_price_no || 0).toFixed(1)}¢</td>
+                                  <td style={{ fontSize: '0.8rem', fontWeight: 700, color: 'hsl(var(--brand))' }}>
+                                    {cost.toFixed(2)} ORC
+                                  </td>
+                                  <td style={{ fontSize: '0.8rem' }}>
+                                    <span style={{
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      color: marketStatus === 'active' ? 'hsl(var(--yes-color))' : 'hsl(var(--text-muted))'
+                                    }}>
+                                      {marketStatus === 'active' ? 'ACTIVO' : 'CERRADO'}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <button
+                                      onClick={() => handleRefundPosition(pos)}
+                                      style={{
+                                        padding: '0.35rem 0.5rem',
+                                        background: 'hsl(var(--no-bg))',
+                                        color: 'hsl(var(--no-color))',
+                                        border: '1px solid hsl(var(--no-color) / 0.3)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700
+                                      }}
+                                    >
+                                      Reembolsar
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            }
+                            return rows;
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+
+                {/* Shop Redemptions list */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid hsl(var(--border))', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '0.75rem', color: 'white', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem' }}>
+                    Historial de Canjes de Tienda (Alianzas)
+                  </h4>
+                  <div className="leaderboard-table-container">
+                    {investorRedemptions.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '1.5rem', color: 'hsl(var(--text-muted))', fontSize: '0.8rem' }}>
+                        No hay canjes de tienda registrados para este usuario.
+                      </div>
+                    ) : (
+                      <table className="leaderboard-table">
+                        <thead>
+                          <tr>
+                            <th>Premio / Alianza</th>
+                            <th>Costo</th>
+                            <th>Fecha de Canje</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {investorRedemptions.map((red) => {
+                            const reward = rewardsList.find(r => r.id === red.reward_id);
+                            const rewardTitle = reward ? reward.title : 'Premio Desconocido';
+                            const rewardCost = reward ? reward.cost : 0;
+                            return (
+                              <tr key={red.id}>
+                                <td style={{ fontSize: '0.8rem', fontWeight: 600 }}>{rewardTitle}</td>
+                                <td style={{ fontSize: '0.8rem', fontWeight: 700, color: 'hsl(var(--brand))' }}>
+                                  {rewardCost} ORC
+                                </td>
+                                <td style={{ fontSize: '0.8rem', color: 'hsl(var(--text-muted))' }}>
+                                  {formatDate(red.created_at)}
+                                </td>
+                                <td>
+                                  <span style={{
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    background: red.status === 'completed' ? 'hsl(var(--yes-bg) / 0.15)' : 'rgba(255, 150, 0, 0.15)',
+                                    color: red.status === 'completed' ? 'hsl(var(--yes-color))' : 'orange',
+                                    padding: '0.2rem 0.45rem',
+                                    borderRadius: '4px'
+                                  }}>
+                                    {red.status === 'completed' ? 'COMPLETADO' : 'PENDIENTE'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                    {red.status !== 'completed' && (
+                                      <button
+                                        onClick={() => handleCompleteRedemption(red)}
+                                        style={{
+                                          padding: '0.35rem 0.5rem',
+                                          background: 'hsl(var(--yes-bg))',
+                                          color: 'hsl(var(--yes-color))',
+                                          border: '1px solid hsl(var(--yes-color) / 0.3)',
+                                          borderRadius: 'var(--radius-sm)',
+                                          cursor: 'pointer',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 700
+                                        }}
+                                      >
+                                        Entregar
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleCancelRedemption(red)}
+                                      style={{
+                                        padding: '0.35rem 0.5rem',
+                                        background: 'hsl(var(--no-bg))',
+                                        color: 'hsl(var(--no-color))',
+                                        border: '1px solid hsl(var(--no-color) / 0.3)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700
+                                      }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
