@@ -88,9 +88,49 @@ const LOGS_BY_CATEGORY = {
 };
 
 // ─────────────────────────────────────────────
+// TOPICS / SUBCATEGORIES PER CATEGORY
+// ─────────────────────────────────────────────
+const TOPICS_BY_CATEGORY = {
+  'Deportes': [
+    { id: 'mundial_2026',      label: 'Mundial 2026',        emoji: '🌍' },
+    { id: 'copa_libertadores', label: 'Copa Libertadores',   emoji: '⚽' },
+    { id: 'eliminatorias',     label: 'Eliminatorias 2026',  emoji: '📋' },
+    { id: 'copa_america',      label: 'Copa América',        emoji: '🏆' },
+    { id: 'formula1',          label: 'Fórmula 1',           emoji: '🏎️' },
+    { id: 'tenis',             label: 'Tenis',               emoji: '🎾' },
+    { id: 'boxeo_mma',         label: 'Boxeo / MMA',         emoji: '🥊' },
+  ],
+  'Tecnología': [
+    { id: 'ia',                label: 'Inteligencia Artificial', emoji: '🤖' },
+    { id: 'startups_latam',    label: 'Startups LATAM',          emoji: '🦄' },
+    { id: 'criptomonedas',     label: 'Criptomonedas',           emoji: '₿' },
+    { id: 'big_tech',          label: 'Big Tech',                emoji: '🌐' },
+    { id: 'fintech',           label: 'Fintech / IPOs',          emoji: '📈' },
+  ],
+  'Política': [
+    { id: 'elecciones',        label: 'Elecciones',              emoji: '🗳️' },
+    { id: 'reformas',          label: 'Reformas Legislativas',   emoji: '📜' },
+    { id: 'relaciones_int',    label: 'Relaciones Internacionales', emoji: '🤝' },
+    { id: 'seguridad',         label: 'Seguridad Pública',       emoji: '🛡️' },
+  ],
+  'Economía': [
+    { id: 'tasas',             label: 'Tasas de Interés',        emoji: '🏦' },
+    { id: 'inflacion',         label: 'Inflación',               emoji: '📊' },
+    { id: 'mercados',          label: 'Mercados Financieros',    emoji: '💹' },
+    { id: 'empleo',            label: 'Empleo',                  emoji: '👔' },
+  ],
+  'Cultura': [
+    { id: 'musica',            label: 'Música / Conciertos',     emoji: '🎵' },
+    { id: 'cine_series',       label: 'Cine y Series',           emoji: '🎬' },
+    { id: 'premios',           label: 'Premios',                 emoji: '🏅' },
+    { id: 'redes_sociales',    label: 'Redes Sociales',          emoji: '📱' },
+  ],
+};
+
+// ─────────────────────────────────────────────
 // DYNAMIC QUESTION GENERATOR (context-aware)
 // ─────────────────────────────────────────────
-const generateDynamicCuratedSuggestion = (category) => {
+const generateDynamicCuratedSuggestion = (category, topic = null) => {
   const id = `dyn-gen-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   const now = new Date();
   const nextMonthEnd = getNextMonthEnd();
@@ -99,8 +139,614 @@ const generateDynamicCuratedSuggestion = (category) => {
   const nextMonthLabel = nextMonthEnd.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
   const quarterLabel = formatDate(quarterEnd);
   const yearLabel = yearEnd.getFullYear().toString();
+  const topicId = topic?.id || null;
 
-  // ── DEPORTES ──
+  // ── TOPIC-SPECIFIC GENERATORS ──
+
+  // 🌍 MUNDIAL DE FÚTBOL 2026
+  if (topicId === 'mundial_2026') {
+    const mundialEnd = new Date('2026-07-19T23:59:59Z');
+    const selecciones = [
+      { name: 'Colombia', code: 'CO', emoji: '🇨🇴' },
+      { name: 'Argentina', code: 'AR', emoji: '🇦🇷' },
+      { name: 'Brasil', code: 'BR', emoji: '🇧🇷' },
+      { name: 'México', code: 'MX', emoji: '🇲🇽' },
+      { name: 'Uruguay', code: 'UY', emoji: '🇺🇾' },
+      { name: 'Ecuador', code: 'EC', emoji: '🇪🇨' },
+      { name: 'Chile', code: 'CL', emoji: '🇨🇱' },
+      { name: 'Perú', code: 'PE', emoji: '🇵🇪' },
+    ];
+    const fases = [
+      { name: 'la fase de grupos', key: 'grupos', option_a: 'SÍ — Avanza', option_b: 'NO — Eliminado' },
+      { name: 'los octavos de final', key: 'octavos', option_a: 'SÍ — Avanza a cuartos', option_b: 'NO — Eliminado' },
+      { name: 'los cuartos de final', key: 'cuartos', option_a: 'SÍ — Va a semifinal', option_b: 'NO — Eliminado' },
+      { name: 'la semifinal', key: 'semi', option_a: 'SÍ — Va a la final', option_b: 'NO — Eliminado' },
+    ];
+    const sel = selecciones[Math.floor(Math.random() * selecciones.length)];
+    const fase = fases[Math.floor(Math.random() * fases.length)];
+    return {
+      id, category: 'Deportes', country: sel.code,
+      title: `¿Clasificará ${sel.emoji} ${sel.name} a ${fase.name} del Mundial FIFA 2026?`,
+      description: `Se resolverá a SÍ si la selección de ${sel.name} avanza a ${fase.name} del Mundial de Fútbol FIFA 2026 (EE.UU., Canadá y México), según los resultados oficiales publicados por la FIFA. Se resolverá a NO si queda eliminada antes de esa ronda. Resolución: julio de 2026.`,
+      end_date: mundialEnd.toISOString(),
+      resolution_source: 'https://www.fifa.com/worldcup',
+      image_url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+      option_a_label: fase.option_a,
+      option_b_label: fase.option_b,
+    };
+  }
+
+  // 📋 ELIMINATORIAS 2026
+  if (topicId === 'eliminatorias') {
+    const matchups = [
+      { a: 'Colombia 🇨🇴', b: 'Argentina 🇦🇷', cA: 'CO' },
+      { a: 'Brasil 🇧🇷', b: 'Uruguay 🇺🇾', cA: 'BR' },
+      { a: 'Ecuador 🇪🇨', b: 'Chile 🇨🇱', cA: 'EC' },
+      { a: 'Perú 🇵🇪', b: 'Bolivia 🇧🇴', cA: 'PE' },
+      { a: 'Venezuela 🇻🇪', b: 'Paraguay 🇵🇾', cA: 'LATAM' },
+    ];
+    const m = matchups[Math.floor(Math.random() * matchups.length)];
+    const aName = m.a.replace(/\s🇨🇴|🇦🇷|🇧🇷|🇲🇽|🇨🇱|🇵🇪|🇺🇾|🇪🇨|🇻🇪|🇧🇴|🇵🇾/g, '').trim();
+    const bName = m.b.replace(/\s🇨🇴|🇦🇷|🇧🇷|🇲🇽|🇨🇱|🇵🇪|🇺🇾|🇪🇨|🇻🇪|🇧🇴|🇵🇾/g, '').trim();
+    return {
+      id, category: 'Deportes', country: m.cA,
+      title: `¿Ganará ${m.a} el próximo partido vs ${m.b} en las Eliminatorias Sudamericanas 2026?`,
+      description: `Se resolverá a SÍ si ${aName} suma los 3 puntos en el encuentro oficial de las Eliminatorias Sudamericanas rumbo al Mundial 2026 (resultado en 90 minutos regulares). Se resolverá a NO si ${bName} gana o el partido termina en empate. Resolución: ${nextMonthLabel}.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: 'https://www.conmebol.com/eliminatorias-sudamerica',
+      image_url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `Gana ${aName}`,
+      option_b_label: `Gana ${bName} / Empate`,
+    };
+  }
+
+  // 🏆 COPA AMÉRICA
+  if (topicId === 'copa_america') {
+    const equipos = [
+      { name: 'Colombia', code: 'CO', emoji: '🇨🇴' },
+      { name: 'Argentina', code: 'AR', emoji: '🇦🇷' },
+      { name: 'Brasil', code: 'BR', emoji: '🇧🇷' },
+      { name: 'Uruguay', code: 'UY', emoji: '🇺🇾' },
+      { name: 'México', code: 'MX', emoji: '🇲🇽' },
+    ];
+    const eq = equipos[Math.floor(Math.random() * equipos.length)];
+    return {
+      id, category: 'Deportes', country: eq.code,
+      title: `¿Será ${eq.emoji} ${eq.name} el campeón de la próxima Copa América de la CONMEBOL?`,
+      description: `Se resolverá a SÍ si ${eq.name} gana el trofeo oficial de la Copa América organizada por CONMEBOL en su próxima edición. Se resolverá a NO si otro equipo resulta campeón. Resolución: ${quarterLabel}.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: 'https://www.conmebol.com/copa-america',
+      image_url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — ${eq.name} campeón`,
+      option_b_label: 'NO — Otro campeón',
+    };
+  }
+
+  // 🥊 BOXEO / MMA
+  if (topicId === 'boxeo_mma') {
+    const peleadores = [
+      { name: 'Andy Ruiz Jr.', country: 'MX', belt: 'campeonato de peso completo', org: 'WBC/WBA' },
+      { name: 'Oscar Valdez', country: 'MX', belt: 'título superlígero', org: 'WBC' },
+      { name: 'Gilberto Ramírez', country: 'MX', belt: 'campeonato de crucero', org: 'WBA' },
+      { name: 'Jesús Ramos Jr.', country: 'MX', belt: 'título supermediano', org: 'WBC' },
+      { name: 'Diego Pacheco', country: 'PE', belt: 'título superwelter', org: 'WBO' },
+    ];
+    const p = peleadores[Math.floor(Math.random() * peleadores.length)];
+    return {
+      id, category: 'Deportes', country: p.country,
+      title: `¿Ganará ${p.name} su próxima pelea por el ${p.belt} (${p.org})?`,
+      description: `Se resolverá a SÍ si ${p.name} resulta ganador (por KO, TKO, decisión unánime o mayoritaria) en su siguiente combate oficial por el ${p.belt} de la ${p.org}. Se resolverá a NO en caso de derrota, empate o descalificación. Resolución: ${nextMonthLabel}.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: 'https://www.boxingscene.com',
+      image_url: 'https://images.unsplash.com/photo-1547153760-18fc86324498?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — ${p.name} gana`,
+      option_b_label: 'NO — Pierde o empata',
+    };
+  }
+
+  // 🎾 TENIS
+  if (topicId === 'tenis') {
+    const torneos = [
+      { name: 'Wimbledon', end: new Date(yearEnd.getFullYear(), 6, 13), url: 'https://www.wimbledon.com', country: 'LATAM' },
+      { name: 'US Open', end: new Date(yearEnd.getFullYear(), 8, 7), url: 'https://www.usopen.org', country: 'LATAM' },
+      { name: 'Roland Garros', end: new Date(yearEnd.getFullYear(), 5, 8), url: 'https://www.rolandgarros.com', country: 'LATAM' },
+    ];
+    const jugadores = ['Carlos Alcaraz', 'Jannik Sinner', 'Novak Djokovic', 'Iga Swiatek', 'Coco Gauff'];
+    const t = torneos[Math.floor(Math.random() * torneos.length)];
+    const j = jugadores[Math.floor(Math.random() * jugadores.length)];
+    return {
+      id, category: 'Deportes', country: t.country,
+      title: `¿Ganará ${j} el título de ${t.name} ${yearLabel}?`,
+      description: `Se resolverá a SÍ si ${j} resulta campeón(a) del torneo de Grand Slam ${t.name} ${yearLabel}, según los resultados oficiales publicados por la ATP/WTA. Se resolverá a NO en caso contrario. Resolución: ${formatDate(t.end)}.`,
+      end_date: t.end.toISOString(),
+      resolution_source: t.url,
+      image_url: 'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — ${j.split(' ').pop()} campeón(a)`,
+      option_b_label: 'NO — Otro/a campeón(a)',
+    };
+  }
+
+  // 🤖 INTELIGENCIA ARTIFICIAL
+  if (topicId === 'ia') {
+    const empresas = ['OpenAI', 'Google DeepMind', 'Anthropic', 'Meta AI', 'xAI (Grok)', 'Mistral AI'];
+    const hitos = [
+      'lanzar un modelo de IA con capacidad de razonamiento autónomo superior al nivel humano en benchmarks estándar',
+      'anunciar un acuerdo de distribución con al menos 5 gobiernos latinoamericanos para IA en servicios públicos',
+      'superar 1,000 millones de usuarios activos mensuales en su plataforma de IA generativa',
+      'lanzar su primer modelo de lenguaje entrenado exclusivamente con datos en español LATAM',
+      'cerrar una ronda de financiación superior a 5,000 millones de dólares',
+    ];
+    const empresa = empresas[Math.floor(Math.random() * empresas.length)];
+    const hito = hitos[Math.floor(Math.random() * hitos.length)];
+    return {
+      id, category: 'Tecnología', country: 'LATAM',
+      title: `¿Logrará ${empresa} ${hito} antes del ${quarterLabel}?`,
+      description: `Se resolverá a SÍ si ${empresa} publica un comunicado oficial o anuncio en su blog corporativo confirmando el hito antes del ${quarterLabel}. Se resolverá a NO si no hay anuncio oficial en dicho período.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: 'https://techcrunch.com',
+      image_url: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Logrado',
+      option_b_label: 'NO — No anunciado',
+    };
+  }
+
+  // ₿ CRIPTOMONEDAS
+  if (topicId === 'criptomonedas') {
+    const cryptos = [
+      { name: 'Bitcoin (BTC)', symbol: 'btc', thresholds: ['100,000', '120,000', '150,000'], unit: 'USD' },
+      { name: 'Ethereum (ETH)', symbol: 'ethereum', thresholds: ['4,000', '5,000', '6,000'], unit: 'USD' },
+      { name: 'Solana (SOL)', symbol: 'solana', thresholds: ['200', '300', '400'], unit: 'USD' },
+    ];
+    const crypto = cryptos[Math.floor(Math.random() * cryptos.length)];
+    const threshold = crypto.thresholds[Math.floor(Math.random() * crypto.thresholds.length)];
+    return {
+      id, category: 'Tecnología', country: 'LATAM',
+      title: `¿Superará ${crypto.name} el umbral de ${threshold} ${crypto.unit} antes del ${formatDate(quarterEnd)}?`,
+      description: `Se resolverá a SÍ si el precio de cierre de ${crypto.name} supera los ${threshold} ${crypto.unit} en al menos un día dentro del trimestre actual, según datos oficiales de CoinMarketCap. Se resolverá a NO si no se alcanza dicho umbral.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: `https://coinmarketcap.com/currencies/${crypto.symbol}`,
+      image_url: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — Supera ${threshold}`,
+      option_b_label: 'NO — No alcanza',
+    };
+  }
+
+  // 🗳️ ELECCIONES
+  if (topicId === 'elecciones') {
+    const elecciones_latam = [
+      { pais: 'Chile', candidatos: ['José Antonio Kast', 'Gabriel Boric (reelección)'], code: 'CL', url: 'https://www.servel.cl', año: yearLabel },
+      { pais: 'Colombia', candidatos: ['candidato del Pacto Histórico', 'candidato del Centro Democrático'], code: 'CO', url: 'https://www.registraduria.gov.co', año: yearLabel },
+      { pais: 'México', candidatos: ['candidato de Morena', 'candidato de oposición'], code: 'MX', url: 'https://www.ine.mx', año: yearLabel },
+      { pais: 'Argentina', candidatos: ['candidato kirchnerista', 'candidato opositor'], code: 'AR', url: 'https://www.electoral.gob.ar', año: yearLabel },
+      { pais: 'Perú', candidatos: ['candidato de izquierda', 'candidato de derecha'], code: 'PE', url: 'https://www.jne.gob.pe', año: yearLabel },
+    ];
+    const e = elecciones_latam[Math.floor(Math.random() * elecciones_latam.length)];
+    const preguntas = [
+      `¿Llegará un candidato de derecha a la segunda vuelta presidencial en ${e.pais} ${e.año}?`,
+      `¿Superará la participación electoral el 60% en las próximas elecciones de ${e.pais} ${e.año}?`,
+      `¿Habrá ballotage (segunda vuelta) en las elecciones presidenciales de ${e.pais} ${e.año}?`,
+    ];
+    const pregunta = preguntas[Math.floor(Math.random() * preguntas.length)];
+    return {
+      id, category: 'Política', country: e.code,
+      title: pregunta,
+      description: `Se resolverá según los resultados oficiales publicados por la autoridad electoral de ${e.pais} (${e.url}) tras las elecciones de ${e.año}. La resolución se basa exclusivamente en datos oficiales certificados. Resolución: ${formatDate(yearEnd)}.`,
+      end_date: yearEnd.toISOString(),
+      resolution_source: e.url,
+      image_url: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Ocurre',
+      option_b_label: 'NO — No ocurre',
+    };
+  }
+
+  // 📊 INFLACIÓN
+  if (topicId === 'inflacion') {
+    const paises = [
+      { name: 'Colombia', code: 'CO', agencia: 'DANE', target: '3.5', url: 'https://www.dane.gov.co', current: '6.5' },
+      { name: 'México', code: 'MX', agencia: 'INEGI', target: '3.5', url: 'https://www.inegi.org.mx', current: '4.2' },
+      { name: 'Chile', code: 'CL', agencia: 'INE Chile', target: '3.0', url: 'https://www.ine.gob.cl', current: '3.8' },
+      { name: 'Perú', code: 'PE', agencia: 'INEI', target: '2.5', url: 'https://www.inei.gob.pe', current: '3.1' },
+      { name: 'Brasil', code: 'BR', agencia: 'IBGE', target: '3.0', url: 'https://www.ibge.gov.br', current: '4.8' },
+    ];
+    const p = paises[Math.floor(Math.random() * paises.length)];
+    return {
+      id, category: 'Economía', country: p.code,
+      title: `¿Logrará ${p.name} reducir su inflación interanual por debajo del ${p.target}% en el reporte del ${nextMonthLabel}?`,
+      description: `La inflación actual en ${p.name} es de aproximadamente ${p.current}%. Se resolverá a SÍ si el ${p.agencia} publica en su informe oficial del ${nextMonthLabel} una tasa de variación del IPC interanual inferior al ${p.target}%. Se resolverá a NO si la cifra es igual o superior.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: p.url,
+      image_url: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — Baja del ${p.target}%`,
+      option_b_label: 'NO — Se mantiene o sube',
+    };
+  }
+
+  // 👔 EMPLEO
+  if (topicId === 'empleo') {
+    const paises = [
+      { name: 'Colombia', code: 'CO', agencia: 'DANE', tasa: '10.2', meta: '9.0', url: 'https://www.dane.gov.co' },
+      { name: 'México', code: 'MX', agencia: 'INEGI', tasa: '2.8', meta: '2.5', url: 'https://www.inegi.org.mx' },
+      { name: 'Argentina', code: 'AR', agencia: 'INDEC', tasa: '7.1', meta: '6.5', url: 'https://www.indec.gob.ar' },
+      { name: 'Chile', code: 'CL', agencia: 'INE Chile', tasa: '8.5', meta: '7.5', url: 'https://www.ine.gob.cl' },
+    ];
+    const p = paises[Math.floor(Math.random() * paises.length)];
+    return {
+      id, category: 'Economía', country: p.code,
+      title: `¿Reducirá ${p.name} su tasa de desempleo por debajo del ${p.meta}% en el reporte del ${nextMonthLabel}?`,
+      description: `La tasa de desempleo actual en ${p.name} es de ${p.tasa}% según el ${p.agencia}. Se resolverá a SÍ si el reporte oficial del ${nextMonthLabel} publica una tasa inferior al ${p.meta}%. Se resolverá a NO si la cifra se mantiene o sube.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: p.url,
+      image_url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — Baja del ${p.meta}%`,
+      option_b_label: 'NO — Se mantiene o sube',
+    };
+  }
+
+  // 💹 MERCADOS FINANCIEROS
+  if (topicId === 'mercados') {
+    const indices = [
+      { name: 'S&P 500', symbol: 'SPX', nivel: '5,800', url: 'https://www.bloomberg.com', country: 'LATAM' },
+      { name: 'COLCAP (Colombia)', symbol: 'COLCAP', nivel: '1,500', url: 'https://www.bvc.com.co', country: 'CO' },
+      { name: 'IPC México (BMV)', symbol: 'IPC', nivel: '58,000', url: 'https://www.bmv.com.mx', country: 'MX' },
+      { name: 'MERVAL (Argentina)', symbol: 'MERV', nivel: '2,000,000', url: 'https://www.byma.com.ar', country: 'AR' },
+    ];
+    const idx = indices[Math.floor(Math.random() * indices.length)];
+    return {
+      id, category: 'Economía', country: idx.country,
+      title: `¿Superará el índice ${idx.name} el nivel de ${idx.nivel} puntos antes del ${quarterLabel}?`,
+      description: `Se resolverá a SÍ si el índice bursátil ${idx.name} (${idx.symbol}) cierra por encima de ${idx.nivel} puntos en al menos una sesión del trimestre actual, según datos oficiales de la bolsa correspondiente. Se resolverá a NO si no se alcanza dicho nivel.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: idx.url,
+      image_url: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — Supera ${idx.nivel}`,
+      option_b_label: 'NO — No alcanza',
+    };
+  }
+
+  // 🎵 MÚSICA / CONCIERTOS
+  if (topicId === 'musica') {
+    const artistas = [
+      { name: 'Karol G', country: 'CO' },
+      { name: 'Bad Bunny', country: 'LATAM' },
+      { name: 'Feid', country: 'CO' },
+      { name: 'Shakira', country: 'CO' },
+      { name: 'Maluma', country: 'CO' },
+      { name: 'Peso Pluma', country: 'MX' },
+      { name: 'Rauw Alejandro', country: 'LATAM' },
+    ];
+    const ciudades = [
+      'Bogotá (El Campín)', 'Ciudad de México (Foro Sol)', 'Buenos Aires (River Plate)',
+      'Santiago (Estadio Nacional)', 'Lima (Estadio Nacional)', 'Medellín (Atanasio Girardot)'
+    ];
+    const a = artistas[Math.floor(Math.random() * artistas.length)];
+    const ciudad = ciudades[Math.floor(Math.random() * ciudades.length)];
+    const preguntas = [
+      { q: `¿Agotará ${a.name} todas las boletas de su próximo concierto en ${ciudad} en menos de 48 horas?`, a: 'SÍ — Sold Out', b: 'NO — Quedan boletas' },
+      { q: `¿Anunciará ${a.name} una gira por LATAM con más de 10 fechas confirmadas antes del ${nextMonthLabel}?`, a: 'SÍ — Más de 10 fechas', b: 'NO — Menos o sin anuncio' },
+      { q: `¿Alcanzará el próximo álbum de ${a.name} el #1 en Spotify Global en su semana de lanzamiento?`, a: 'SÍ — #1 Global', b: 'NO — No llega al top' },
+    ];
+    const preg = preguntas[Math.floor(Math.random() * preguntas.length)];
+    return {
+      id, category: 'Cultura', country: a.country,
+      title: preg.q,
+      description: `Se resolverá a SÍ si el evento descrito ocurre antes del ${nextMonthLabel} según fuentes oficiales (tiqueteadora oficial, Spotify Charts, comunicado de prensa del artista). Se resolverá a NO en caso contrario. Resolución: ${nextMonthLabel}.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: 'https://www.ticketmaster.com.co',
+      image_url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80',
+      option_a_label: preg.a,
+      option_b_label: preg.b,
+    };
+  }
+
+  // 🎬 CINE Y SERIES
+  if (topicId === 'cine_series') {
+    const preguntas = [
+      { q: `¿Superará alguna producción latinoamericana de Netflix los 50 millones de vistas en su primera semana de estreno en ${quarterLabel}?`, a: 'SÍ — Supera 50M', b: 'NO — No alcanza' },
+      { q: `¿Tendrá una producción de habla hispana nominación al Oscar a Mejor Película Internacional en la próxima ceremonia?`, a: 'SÍ — Nominada', b: 'NO — Sin nominación' },
+      { q: `¿Alcanzará una serie colombiana o latinoamericana el Top 10 global de Netflix antes del ${nextMonthLabel}?`, a: 'SÍ — Top 10 Global', b: 'NO — No entra al top' },
+    ];
+    const preg = preguntas[Math.floor(Math.random() * preguntas.length)];
+    return {
+      id, category: 'Cultura', country: 'LATAM',
+      title: preg.q,
+      description: `Se resolverá a SÍ según datos públicos de Netflix Top 10, comunicados de la Academia, o listas oficiales de plataformas de streaming. Se resolverá a NO si no hay registro oficial del hito antes del ${nextMonthLabel}.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: 'https://top10.netflix.com',
+      image_url: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80',
+      option_a_label: preg.a,
+      option_b_label: preg.b,
+    };
+  }
+
+  // 🏅 PREMIOS
+  if (topicId === 'premios') {
+    const premios_list = [
+      { name: 'Latin Grammy', cat: 'Álbum del Año', url: 'https://www.latingrammy.com', country: 'LATAM' },
+      { name: 'Premio Lo Nuestro', cat: 'Artista del Año', url: 'https://www.premioalonuestro.com', country: 'LATAM' },
+      { name: 'MTV MIAW', cat: 'Artista Favorito LATAM', url: 'https://www.mtvla.com', country: 'LATAM' },
+    ];
+    const nominees = ['Karol G', 'Feid', 'Bad Bunny', 'Shakira', 'Peso Pluma', 'Maluma', 'Rauw Alejandro'];
+    const premio = premios_list[Math.floor(Math.random() * premios_list.length)];
+    const nominee = nominees[Math.floor(Math.random() * nominees.length)];
+    return {
+      id, category: 'Cultura', country: premio.country,
+      title: `¿Ganará ${nominee} el galardón "${premio.cat}" en los ${premio.name} ${yearLabel}?`,
+      description: `Se resolverá a SÍ si ${nominee} resulta ganador del premio "${premio.cat}" en la ceremonia oficial de los ${premio.name} ${yearLabel}. Se resolverá a NO si el premio es para otro artista. Resolución: ${formatDate(yearEnd)}.`,
+      end_date: yearEnd.toISOString(),
+      resolution_source: premio.url,
+      image_url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80',
+      option_a_label: `SÍ — ${nominee} gana`,
+      option_b_label: 'NO — Otro artista',
+    };
+  }
+
+  // 📱 REDES SOCIALES
+  if (topicId === 'redes_sociales') {
+    const plataformas = ['TikTok', 'Instagram', 'X (Twitter)', 'YouTube'];
+    const latam_creators = ['Luisito Comunica', 'Badabun', 'Yuya', 'Werevertumorro', 'HolaSoyGerman'];
+    const plat = plataformas[Math.floor(Math.random() * plataformas.length)];
+    const creator = latam_creators[Math.floor(Math.random() * latam_creators.length)];
+    return {
+      id, category: 'Cultura', country: 'MX',
+      title: `¿Superará ${creator} los 50 millones de seguidores en ${plat} antes del ${nextMonthLabel}?`,
+      description: `Se resolverá a SÍ si el perfil oficial de ${creator} en ${plat} supera los 50 millones de seguidores/suscriptores antes del cierre del ${nextMonthLabel}, según el conteo público de la plataforma. Se resolverá a NO si no alcanza dicha cifra.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: `https://www.${plat.toLowerCase().split(' ')[0]}.com`,
+      image_url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Supera 50M',
+      option_b_label: 'NO — No alcanza',
+    };
+  }
+
+  // ⚽ COPA LIBERTADORES
+  if (topicId === 'copa_libertadores') {
+    const teams = [
+      { name: 'Junior de Barranquilla', code: 'CO' },
+      { name: 'Millonarios', code: 'CO' },
+      { name: 'River Plate', code: 'AR' },
+      { name: 'Boca Juniors', code: 'AR' },
+      { name: 'Flamengo', code: 'BR' },
+      { name: 'Palmeiras', code: 'BR' },
+      { name: 'LDU Quito', code: 'EC' },
+    ];
+    const t = teams[Math.floor(Math.random() * teams.length)];
+    return {
+      id, category: 'Deportes', country: t.code,
+      title: `¿Clasificará ${t.name} a los cuartos de final de la Copa Libertadores ${yearLabel}?`,
+      description: `Se resolverá a SÍ si el club ${t.name} avanza a la ronda de cuartos de final de la CONMEBOL Copa Libertadores ${yearLabel}, según los resultados oficiales de la confederación. Se resolverá a NO si es eliminado antes.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: 'https://www.conmebol.com/copa-libertadores',
+      image_url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Clasifica',
+      option_b_label: 'NO — Eliminado',
+    };
+  }
+
+  // 🏎️ FÓRMULA 1
+  if (topicId === 'formula1') {
+    const gps = [
+      { name: 'Gran Premio de Mónaco', country: 'LATAM' },
+      { name: 'Gran Premio de España', country: 'LATAM' },
+      { name: 'Gran Premio de México', country: 'MX' },
+      { name: 'Gran Premio de Brasil', country: 'BR' },
+    ];
+    const gp = gps[Math.floor(Math.random() * gps.length)];
+    const drivers = ['Max Verstappen', 'Lewis Hamilton', 'Lando Norris', 'Sergio Pérez', 'Charles Leclerc'];
+    const d = drivers[Math.floor(Math.random() * drivers.length)];
+    return {
+      id, category: 'Deportes', country: gp.country,
+      title: `¿Logrará ${d} terminar en el podio (Top 3) del ${gp.name} ${yearLabel}?`,
+      description: `Se resolverá a SÍ si ${d} sube al podio (posiciones 1, 2 o 3) en la carrera final oficial de la FIA para el ${gp.name} ${yearLabel}. Se resolverá a NO en caso contrario.`,
+      end_date: nextMonthEnd.toISOString(),
+      resolution_source: 'https://www.formula1.com',
+      image_url: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Podio',
+      option_b_label: 'NO — Fuera del podio',
+    };
+  }
+
+  // 🦄 STARTUPS LATAM
+  if (topicId === 'startups_latam') {
+    const startups = [
+      { name: 'Rappi', code: 'CO' },
+      { name: 'Kavak', code: 'MX' },
+      { name: 'Habi', code: 'CO' },
+      { name: 'NotCo', code: 'CL' },
+      { name: 'Bold', code: 'CO' },
+    ];
+    const s = startups[Math.floor(Math.random() * startups.length)];
+    return {
+      id, category: 'Tecnología', country: s.code,
+      title: `¿Anunciará la startup ${s.name} una nueva ronda de inversión superior a 50 millones de USD antes de fin de año?`,
+      description: `Se resolverá a SÍ si la compañía ${s.name} publica o confirma en medios de comunicación reputados (como TechCrunch o Bloomberg) una ronda de financiamiento Serie C, D o de extensión por un valor igual o superior a 50 millones de dólares americanos antes del 31 de diciembre de ${yearLabel}. Se resolverá a NO si no se oficializa dicho anuncio.`,
+      end_date: yearEnd.toISOString(),
+      resolution_source: 'https://techcrunch.com',
+      image_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Ronda anunciada',
+      option_b_label: 'NO — Sin anuncio',
+    };
+  }
+
+  // 🌐 BIG TECH
+  if (topicId === 'big_tech') {
+    const companies = [
+      { name: 'Apple', code: 'LATAM', detail: 'anunciar un nuevo dispositivo de realidad mixta (Vision Air o similar) con precio inferior a 1,500 USD' },
+      { name: 'Google', code: 'LATAM', detail: 'integrar su agente de IA de forma nativa en todos los servicios públicos estatales de al menos un país de LATAM' },
+      { name: 'Meta', code: 'LATAM', detail: 'lanzar su modelo Llama 4 en versión de código abierto' },
+    ];
+    const c = companies[Math.floor(Math.random() * companies.length)];
+    return {
+      id, category: 'Tecnología', country: c.code,
+      title: `¿Logrará ${c.name} ${c.detail} antes de finalizar el trimestre actual?`,
+      description: `Se resolverá a SÍ si ${c.name} realiza la presentación oficial del producto o servicio descrito en su blog oficial o evento corporativo antes del ${quarterLabel}. Se resolverá a NO en caso contrario.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: 'https://techcrunch.com',
+      image_url: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Logrado',
+      option_b_label: 'NO — No logrado',
+    };
+  }
+
+  // 📈 FINTECH
+  if (topicId === 'fintech') {
+    const fintechs = [
+      { name: 'Nubank (Nu)', code: 'BR', metric: 'los 115 millones de clientes activos' },
+      { name: 'Ualá', code: 'AR', metric: 'la adquisición de una nueva licencia bancaria en LATAM' },
+      { name: 'Mercado Pago', code: 'LATAM', metric: 'superar los 60 millones de usuarios con saldo remunerado' },
+    ];
+    const f = fintechs[Math.floor(Math.random() * fintechs.length)];
+    return {
+      id, category: 'Tecnología', country: f.code,
+      title: `¿Logrará ${f.name} alcanzar ${f.metric} antes del reporte financiero del trimestre actual?`,
+      description: `Se resolverá a SÍ si el reporte oficial de resultados financieros de ${f.name} (o de su empresa matriz) correspondiente al trimestre actual certifica el cumplimiento de la métrica. Se resolverá a NO si la cifra oficial reportada es menor o si el reporte se retrasa más allá del plazo.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: 'https://www.bloomberglinea.com',
+      image_url: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Logrado',
+      option_b_label: 'NO — No alcanzado',
+    };
+  }
+
+  // 📜 REFORMAS LEGISLATIVAS
+  if (topicId === 'reformas') {
+    const countries = [
+      { name: 'Colombia', code: 'CO', body: 'el Congreso de la República', reform: 'la reforma laboral que reduce la jornada de trabajo nocturno' },
+      { name: 'México', code: 'MX', body: 'la Cámara de Senadores', reform: 'la reforma judicial en su fase de implementación estatal' },
+      { name: 'Argentina', code: 'AR', body: 'el Congreso Nacional', reform: 'la nueva ley de privatizaciones de empresas públicas' },
+    ];
+    const c = countries[Math.floor(Math.random() * countries.length)];
+    return {
+      id, category: 'Política', country: c.code,
+      title: `¿Aprobará definitivamente ${c.body} de ${c.name} ${c.reform} antes de fin de año?`,
+      description: `Se resolverá a SÍ si el texto final de la ley es sancionado y publicado en el boletín oficial o gaceta correspondiente de ${c.name} antes del 31 de diciembre de ${yearLabel}. Se resolverá a NO si el debate es aplazado o archivado.`,
+      end_date: yearEnd.toISOString(),
+      resolution_source: 'https://www.boletinoficial.gob.ar',
+      image_url: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Sancionada',
+      option_b_label: 'NO — No sancionada / Aplazada',
+    };
+  }
+
+  // 🤝 RELACIONES INTERNACIONALES
+  if (topicId === 'relaciones_int') {
+    const topics = [
+      { title: '¿Firmarán los gobiernos de Colombia y Venezuela un nuevo acuerdo de aranceles comerciales?', country: 'CO', desc: 'Se resolverá a SÍ si los ministerios de comercio de ambos países firman un acuerdo arancelario bilateral.' },
+      { title: '¿Ratificará el parlamento de algún país del Mercosur el acuerdo comercial definitivo con la Unión Europea?', country: 'LATAM', desc: 'Se resolverá a SÍ si al menos uno de los parlamentos nacionales de los miembros fundadores del Mercosur aprueba el tratado.' },
+    ];
+    const t = topics[Math.floor(Math.random() * topics.length)];
+    return {
+      id, category: 'Política', country: t.country,
+      title: t.title,
+      description: `${t.desc} Resolución antes de finalizar el año actual.`,
+      end_date: yearEnd.toISOString(),
+      resolution_source: 'https://www.cancilleria.gov.co',
+      image_url: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Firmado/Ratificado',
+      option_b_label: 'NO — No concretado',
+    };
+  }
+
+  // 🛡️ SEGURIDAD PÚBLICA
+  if (topicId === 'seguridad') {
+    const cases = [
+      { country: 'EC', title: '¿Reducirá Ecuador la tasa de homicidios mensual por debajo del umbral crítico de 15 por cada 100 mil habitantes en el próximo reporte oficial?', desc: 'Se resolverá a SÍ si el reporte oficial de criminalidad del Ministerio del Interior de Ecuador registra una tasa inferior al umbral.' },
+      { country: 'MX', title: '¿Desplegará el gobierno de México más de 5,000 nuevos efectivos de la Guardia Nacional en la frontera sur antes de finalizar el trimestre?', desc: 'Se resolverá a SÍ si la Secretaría de la Defensa Nacional confirma el despliegue extraordinario de más de 5,000 elementos.' },
+    ];
+    const c = cases[Math.floor(Math.random() * cases.length)];
+    return {
+      id, category: 'Política', country: c.country,
+      title: c.title,
+      description: `${c.desc} Resolución: ${quarterLabel}.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: 'https://www.gob.ec',
+      image_url: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Logrado',
+      option_b_label: 'NO — No alcanzado',
+    };
+  }
+
+  // 🏦 TASAS DE INTERÉS
+  if (topicId === 'tasas') {
+    const banks = [
+      { name: 'el Banco de la República (Colombia)', code: 'CO', rate: '9.0%', url: 'https://www.banrep.gov.co' },
+      { name: 'el Banco de México (Banxico)', code: 'MX', rate: '10.0%', url: 'https://www.banxico.org.mx' },
+      { name: 'el Banco Central de Chile', code: 'CL', rate: '4.5%', url: 'https://www.bcentral.cl' },
+    ];
+    const b = banks[Math.floor(Math.random() * banks.length)];
+    return {
+      id, category: 'Economía', country: b.code,
+      title: `¿Reducirá ${b.name} su tasa de interés de referencia por debajo de ${b.rate} antes del cierre de este trimestre?`,
+      description: `Se resolverá a SÍ si en el reporte o comunicado oficial de la próxima reunión de política monetaria de este trimestre se decide fijar la tasa de interés interbancaria en un valor estrictamente menor a ${b.rate}. Se resolverá a NO si se mantiene igual o superior.`,
+      end_date: quarterEnd.toISOString(),
+      resolution_source: b.url,
+      image_url: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80',
+      option_a_label: 'SÍ — Tasa reducida',
+      option_b_label: 'NO — Mantiene o sube',
+    };
+  }
+
+  // ── CUSTOM / FREE TEXT TOPIC ──
+  if (topic && (topic.id === 'custom' || !topic.id)) {
+    const topicText = topic.label || topic;
+    if (category === 'Deportes') {
+      return {
+        id, category: 'Deportes', country: 'LATAM',
+        title: `¿Se cancelará o reprogramará algún evento principal relacionado con "${topicText}" antes de fin de mes?`,
+        description: `Se resolverá a SÍ si se anuncia la cancelación o postergación oficial de algún evento principal de "${topicText}" por parte de la organización oficial antes del ${nextMonthLabel}. Se resolverá a NO en caso contrario.`,
+        end_date: nextMonthEnd.toISOString(),
+        resolution_source: 'https://www.espn.com',
+        image_url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=400&q=80',
+        option_a_label: 'SÍ — Afectado',
+        option_b_label: 'NO — Transcurre normal',
+      };
+    } else if (category === 'Tecnología') {
+      return {
+        id, category: 'Tecnología', country: 'LATAM',
+        title: `¿Anunciará alguna gran empresa tecnológica un producto innovador enfocado en "${topicText}" este trimestre?`,
+        description: `Se resolverá a SÍ si se publica un anuncio oficial de hardware, software o servicio de gran relevancia relacionado con "${topicText}" antes del ${quarterLabel}.`,
+        end_date: quarterEnd.toISOString(),
+        resolution_source: 'https://techcrunch.com',
+        image_url: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=400&q=80',
+        option_a_label: 'SÍ — Lanzado/Anunciado',
+        option_b_label: 'NO — Sin novedades',
+      };
+    } else if (category === 'Política') {
+      return {
+        id, category: 'Política', country: 'LATAM',
+        title: `¿Será "${topicText}" el tema central de debate legislativo o declaración presidencial conjunta en LATAM este mes?`,
+        description: `Se resolverá a SÍ si al menos dos presidentes de la región firman una declaración conjunta o hay una sesión plenaria extraordinaria de debate sobre "${topicText}" antes del ${nextMonthLabel}.`,
+        end_date: nextMonthEnd.toISOString(),
+        resolution_source: 'https://www.cepal.org',
+        image_url: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=400&q=80',
+        option_a_label: 'SÍ — Ocurre debate/declaración',
+        option_b_label: 'NO — Sin relevancia extraordinaria',
+      };
+    } else if (category === 'Economía') {
+      return {
+        id, category: 'Economía', country: 'LATAM',
+        title: `¿Publicará la CEPAL o el FMI un informe especial de impacto económico directo sobre "${topicText}" este trimestre?`,
+        description: `Se resolverá a SÍ si la CEPAL, el FMI o el Banco Mundial publica en su portal un reporte, boletín o capítulo dedicado al impacto de "${topicText}" en las economías de la región antes del ${quarterLabel}.`,
+        end_date: quarterEnd.toISOString(),
+        resolution_source: 'https://www.cepal.org',
+        image_url: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=400&q=80',
+        option_a_label: 'SÍ — Informe publicado',
+        option_b_label: 'NO — Sin informe especial',
+      };
+    } else {
+      return {
+        id, category: 'Cultura', country: 'LATAM',
+        title: `¿Se convertirá "${topicText}" en una de las tendencias principales (Trending Topic / Top 5) en redes sociales en LATAM este mes?`,
+        description: `Se resolverá a SÍ si "${topicText}" alcanza el Top 5 de tendencias más populares en plataformas de monitorización de redes sociales (como Google Trends o Trendinalia) durante al menos 24 horas consecutivas antes del ${nextMonthLabel}.`,
+        end_date: nextMonthEnd.toISOString(),
+        resolution_source: 'https://trends.google.com',
+        image_url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80',
+        option_a_label: 'SÍ — Tendencia principal',
+        option_b_label: 'NO — No alcanza relevancia',
+      };
+    }
+  }
+
+  // ── DEPORTES (generic, unchanged) ──
   if (category === 'Deportes') {
     const rType = Math.random();
 
@@ -453,6 +1099,9 @@ export default function AiCurator({ onMarketLaunched }) {
   // Start EMPTY — no pre-seeded suggestions
   const [suggestions, setSuggestions] = useState([]);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('Todos');
+  const [selectedTopic, setSelectedTopic] = useState(null); // { id, label, emoji }
+  const [customTopic, setCustomTopic] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   const [running, setRunning] = useState(false);
   const [publishing, setPublishing] = useState(null);
   const terminalBoxRef = useRef(null);
@@ -495,6 +1144,13 @@ export default function AiCurator({ onMarketLaunched }) {
     return () => { if (activeIntervalRef.current) clearInterval(activeIntervalRef.current); };
   }, []);
 
+  // Reset topic filter when category changes
+  useEffect(() => {
+    setSelectedTopic(null);
+    setCustomTopic('');
+    setShowCustomInput(false);
+  }, [selectedCategoryFilter]);
+
   // ── IA SIMULATION ──
   const handleStartSimulation = () => {
     if (running) return;
@@ -503,19 +1159,32 @@ export default function AiCurator({ onMarketLaunched }) {
       ? CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
       : selectedCategoryFilter;
 
-    const categoryLogs = LOGS_BY_CATEGORY[genCategory] || LOGS_BY_CATEGORY['Deportes'];
+    // Resolve active topic
+    const activeTopic = showCustomInput && customTopic.trim()
+      ? { id: 'custom', label: customTopic.trim(), emoji: '✏️' }
+      : selectedTopic;
+
+    const baseLogs = LOGS_BY_CATEGORY[genCategory] || LOGS_BY_CATEGORY['Deportes'];
+    let finalLogs = [...baseLogs];
+    if (activeTopic) {
+      finalLogs.splice(2, 0, {
+        text: `[Agente 1] Tema enfocado: "${activeTopic.emoji || '✏️'} ${activeTopic.label}". Filtrando noticias y eventos relevantes...`,
+        type: 'warning'
+      });
+    }
+
     let logIndex = 0;
-    setLogs([categoryLogs[0]]);
+    setLogs([finalLogs[0]]);
     if (activeIntervalRef.current) clearInterval(activeIntervalRef.current);
 
     activeIntervalRef.current = setInterval(() => {
-      if (logIndex < categoryLogs.length - 1) {
+      if (logIndex < finalLogs.length - 1) {
         logIndex++;
-        setLogs(prev => [...prev, categoryLogs[logIndex]]);
+        setLogs(prev => [...prev, finalLogs[logIndex]]);
       } else {
         clearInterval(activeIntervalRef.current);
         setRunning(false);
-        const newSug = generateDynamicCuratedSuggestion(genCategory);
+        const newSug = generateDynamicCuratedSuggestion(genCategory, activeTopic);
         setSuggestions(prev => [newSug, ...prev]);
       }
     }, 1400);
@@ -707,6 +1376,104 @@ export default function AiCurator({ onMarketLaunched }) {
             );
           })}
         </div>
+
+        {/* Topic selector for IA generation */}
+        {selectedCategoryFilter !== 'Todos' && (
+          <div style={{ marginTop: '0.75rem', borderTop: '1px dashed hsl(var(--border))', paddingTop: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Tema o Subcategoría (Opcional)
+              </span>
+              {(selectedTopic || (showCustomInput && customTopic.trim())) && (
+                <button
+                  onClick={() => { setSelectedTopic(null); setCustomTopic(''); setShowCustomInput(false); }}
+                  style={{ background: 'none', border: 'none', color: 'hsl(var(--brand))', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                >
+                  Limpiar tema
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.4rem', scrollbarWidth: 'none', flexWrap: 'wrap' }}>
+              {(TOPICS_BY_CATEGORY[selectedCategoryFilter] || []).map((topic) => {
+                const isSelected = selectedTopic?.id === topic.id && !showCustomInput;
+                return (
+                  <button
+                    key={topic.id}
+                    onClick={() => {
+                      setSelectedTopic(topic);
+                      setShowCustomInput(false);
+                    }}
+                    style={{
+                      padding: '0.35rem 0.7rem',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      borderRadius: '100px',
+                      border: isSelected ? '1px solid hsl(var(--brand))' : '1px solid hsl(var(--border))',
+                      background: isSelected ? 'hsl(var(--brand) / 0.12)' : 'hsl(var(--bg-app) / 0.4)',
+                      color: isSelected ? 'hsl(var(--brand))' : 'hsl(var(--text-main))',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <span>{topic.emoji}</span>
+                    <span>{topic.label}</span>
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => {
+                  setShowCustomInput(true);
+                  setSelectedTopic(null);
+                }}
+                style={{
+                  padding: '0.35rem 0.7rem',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  borderRadius: '100px',
+                  border: showCustomInput ? '1px solid hsl(var(--brand))' : '1px solid hsl(var(--border))',
+                  background: showCustomInput ? 'hsl(var(--brand) / 0.12)' : 'hsl(var(--bg-app) / 0.4)',
+                  color: showCustomInput ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <span>✏️</span>
+                <span>Tema Personalizado</span>
+              </button>
+            </div>
+
+            {showCustomInput && (
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={customTopic}
+                  onChange={(e) => setCustomTopic(e.target.value)}
+                  placeholder="Escribe un tema (ej: Copa Libertadores, Mundial de Clubes...)"
+                  style={{
+                    ...inputStyle,
+                    padding: '0.4rem 0.6rem',
+                    fontSize: '0.75rem',
+                    width: '100%',
+                    maxWidth: '320px',
+                  }}
+                />
+                {customTopic.trim() && (
+                  <span style={{ fontSize: '0.7rem', color: 'hsl(var(--brand))', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                    <Check size={12} /> Listo
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="terminal-box" ref={terminalBoxRef} style={{ marginTop: '0.75rem' }}>
           {logs.map((log, idx) => (
