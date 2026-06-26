@@ -529,8 +529,8 @@ export default function UserProfileTab({ userProfile, onProfileUpdate }) {
                     <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Balance de Créditos</span>
                     <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'hsl(var(--text-main))' }}>Créditos Disponibles</span>
                   </div>
-                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'hsl(var(--yes-color))', fontFamily: 'var(--font-heading)' }}>
-                    {parseFloat(userProfile?.orc_balance || 0).toLocaleString()} ¢
+                  <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'hsl(var(--yes-color))', fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    🪙 {parseFloat(userProfile?.orc_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ORC
                   </span>
                 </div>
 

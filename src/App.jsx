@@ -115,6 +115,11 @@ export default function App() {
   // Auth Modal State (for guest users)
   const [showAuthModal, setShowAuthModal] = useState(false);
 
+  // Welcome banner dismiss state
+  const [dismissedWelcome, setDismissedWelcome] = useState(
+    localStorage.getItem('oraculo_dismissed_welcome') === 'true'
+  );
+
   // Helper: require auth before running an action
   const requireAuth = (onSuccess) => {
     if (!userProfile) {
@@ -869,7 +874,7 @@ export default function App() {
           <div className="markets-container">
 
             {/* ── Guest Welcome Banner ── */}
-            {!userProfile && (
+            {!userProfile && !dismissedWelcome && (
               <div className="welcome-banner">
                 {/* Decorative glow */}
                 <div style={{
@@ -880,6 +885,37 @@ export default function App() {
                   filter: 'blur(40px)',
                   pointerEvents: 'none'
                 }} />
+
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    setDismissedWelcome(true);
+                    localStorage.setItem('oraculo_dismissed_welcome', 'true');
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '0.6rem',
+                    right: '0.6rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'hsl(var(--text-muted))',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    padding: '0.2rem',
+                    lineHeight: 1,
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'white'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'hsl(var(--text-muted))'}
+                  title="Ocultar bienvenida"
+                >
+                  <X size={15} />
+                </button>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: '200px' }}>
                   <div style={{

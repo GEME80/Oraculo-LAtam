@@ -3,6 +3,7 @@
 :root {
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
+  --header-height: 57px;
 
   /* === DARK MODE PREMIUM — Oráculo LATAM ===
      Inspired by Kalshi's fintech dark aesthetic */
@@ -16,7 +17,7 @@
   /* Text */
   --text-main:  210 18% 95%;      /* #f0f4f8 — texto principal */
   --text-muted: 215 15% 72%;      /* #abb7c5 — texto secundario */
-  --text-light: 215 12% 52%;      /* #7a8899 — muy muted */
+  --text-light: 215 12% 62%;      /* #929fb0 — aumentado para accesibilidad */
 
   /* Brand — Violeta brillante */
   --brand:       250 85% 65%;     /* #7c5cf6 */
@@ -219,10 +220,15 @@ h1, h2, h3, h4, h5, h6 {
 
 /* NAVIGATION TABS */
 .nav-tabs {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 99;
   display: flex;
   gap: 0.35rem;
   padding: 0.6rem 1.5rem;
-  background: hsl(var(--bg-card));
+  background: hsl(var(--bg-card) / 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid hsl(var(--border));
   overflow-x: auto;
   scrollbar-width: none;
@@ -383,15 +389,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .market-card {
-  background: hsl(var(--bg-card));
-  border: 1px solid hsl(var(--border));
+  background: linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(var(--bg-card) / 0.85) 100%);
+  border: 1px solid hsl(var(--border) / 1.4);
   border-radius: var(--radius-xl);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.03);
   transition: transform var(--transition-spring), box-shadow var(--transition-normal), border-color var(--transition-fast);
   cursor: pointer;
   position: relative;
@@ -402,24 +408,24 @@ h1, h2, h3, h4, h5, h6 {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, hsl(var(--brand) / 0.03) 0%, transparent 60%);
+    background: linear-gradient(135deg, hsl(var(--brand) / 0.04) 0%, transparent 60%);
     pointer-events: none;
     border-radius: inherit;
   }
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg), 0 0 0 1px hsl(var(--border-glow) / 0.2);
-    border-color: hsl(var(--border-glow) / 0.35);
+    box-shadow: 0 16px 36px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    border-color: hsl(var(--border-glow) / 0.45);
   }
 
   &:has(.yes-btn:hover) {
-    border-color: hsl(var(--yes-color) / 0.45);
-    box-shadow: var(--shadow-yes);
+    border-color: hsl(var(--yes-color) / 0.6);
+    box-shadow: 0 12px 28px rgba(29,217,122,0.15), 0 4px 20px rgba(0, 0, 0, 0.45);
   }
   &:has(.no-btn:hover) {
-    border-color: hsl(var(--no-color) / 0.45);
-    box-shadow: var(--shadow-no);
+    border-color: hsl(var(--no-color) / 0.6);
+    box-shadow: 0 12px 28px rgba(240,71,106,0.15), 0 4px 20px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -469,9 +475,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .card-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.45;
+  font-size: 1.05rem;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  line-height: 1.35;
   color: hsl(var(--text-main));
   margin-bottom: 0.875rem;
   display: -webkit-box;
@@ -479,6 +486,7 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;
+  letter-spacing: -0.01em;
 }
 
 .card-action-panel {
@@ -489,7 +497,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .odds-btn {
   flex: 1;
-  border: none;
+  border: 1px solid transparent;
   padding: 0.85rem 0.75rem;
   border-radius: var(--radius-md);
   font-weight: 800;
@@ -499,47 +507,56 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-normal);
   gap: 0.15rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
 
   span:first-child {
     font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    opacity: 0.75;
+    opacity: 0.85;
   }
 
   span:last-child {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-family: var(--font-heading);
     font-weight: 800;
+  }
+
+  &:active {
+    transform: scale(0.97) !important;
   }
 }
 
 .yes-btn {
   background: hsl(var(--yes-bg));
   color: hsl(var(--yes-color));
-  border: 1px solid hsl(var(--yes-color) / 0.2);
+  border: 1px solid hsl(var(--yes-color) / 0.25);
   
   &:hover {
     background: hsl(var(--yes-color));
-    color: hsl(var(--bg-app));
-    box-shadow: var(--shadow-yes);
-    transform: translateY(-1px);
+    color: #0b0f19;
+    box-shadow: 0 0 16px hsl(var(--yes-color) / 0.4);
+    border-color: hsl(var(--yes-color));
+    transform: translateY(-2px);
   }
 }
 
 .no-btn {
   background: hsl(var(--no-bg));
   color: hsl(var(--no-color));
-  border: 1px solid hsl(var(--no-color) / 0.2);
+  border: 1px solid hsl(var(--no-color) / 0.25);
   
   &:hover {
     background: hsl(var(--no-color));
-    color: hsl(var(--bg-app));
-    box-shadow: var(--shadow-no);
-    transform: translateY(-1px);
+    color: #0b0f19;
+    box-shadow: 0 0 16px hsl(var(--no-color) / 0.4);
+    border-color: hsl(var(--no-color));
+    transform: translateY(-2px);
   }
 }
 
@@ -550,7 +567,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 1.5rem;
   }
   .card-title {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     -webkit-line-clamp: 2;
   }
   .card-action-panel {

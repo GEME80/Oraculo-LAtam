@@ -817,14 +817,14 @@ export default function MarketDetailModal({ market, initialOutcome, isOpen, onCl
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.775rem', color: 'hsl(var(--text-muted))' }}>
                     <span style={{ marginRight: '0.25rem' }}>🟢</span>
                     <strong style={{ color: 'hsl(var(--text-main))' }}>Si aciertas:</strong>
-                    <span>ganas 100 Créditos por cada contrato (comprado hoy a {currentPrice}¢)</span>
-                    <Tip text="Cada predicción correcta te paga 100 créditos al finalizar el mercado. Tu ganancia neta es la diferencia entre los 100 créditos y lo que pagaste hoy." />
+                    <span>ganas 1.00 Crédito (100¢) por cada contrato (comprado hoy a 🪙 {currentPrice}¢)</span>
+                    <Tip text="Cada predicción correcta te paga 1.00 Crédito (100¢) al finalizar el mercado. Tu ganancia neta es la diferencia entre el 1.00 Crédito y lo que pagaste hoy." />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.775rem', color: 'hsl(var(--text-muted))' }}>
                     <span style={{ marginRight: '0.25rem' }}>🔴</span>
                     <strong style={{ color: 'hsl(var(--text-main))' }}>Si no aciertas:</strong>
-                    <span>no recuperas lo invertido (el contrato vale 0 Créditos)</span>
-                    <Tip text="Si tu predicción resulta incorrecta, los contratos comprados pierden todo su valor y recibirás 0 créditos." />
+                    <span>no recuperas lo invertido (el contrato vale 0.00 Créditos)</span>
+                    <Tip text="Si tu predicción resulta incorrecta, los contratos comprados pierden todo su valor y recibirás 0.00 créditos." />
                   </div>
                 </div>
               </div>

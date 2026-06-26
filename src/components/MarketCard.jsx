@@ -235,6 +235,22 @@ export default function MarketCard({ market, onSelect }) {
             }
             {trendUp ? '+' : '-'}{changePct}%
           </span>
+          
+          {/* Chart caption/legend */}
+          <div style={{
+            fontSize: '0.62rem',
+            color: 'hsl(var(--text-light))',
+            marginTop: '0.25rem',
+            textAlign: 'left',
+            fontWeight: 600,
+            letterSpacing: '0.01em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <span>📈</span>
+            <span>Historial de probabilidad (SÍ) — Últimos 7 días</span>
+          </div>
         </div>
 
         {/* ── Probability bar ── */}
@@ -256,8 +272,8 @@ export default function MarketCard({ market, onSelect }) {
             onClick={e => { e.stopPropagation(); onSelect(market, 'YES'); }}
           >
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{market.option_a_label || 'SÍ'}</span>
-            <span className={yesFlash} style={{ display: 'inline-block', minWidth: '34px', textAlign: 'center', flexShrink: 0 }}>
-              {Math.round(yes_price)}¢
+            <span className={yesFlash} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', minWidth: '34px', justifyContent: 'center', flexShrink: 0 }}>
+              🪙 {Math.round(yes_price)}¢
             </span>
           </button>
 
@@ -266,8 +282,8 @@ export default function MarketCard({ market, onSelect }) {
             onClick={e => { e.stopPropagation(); onSelect(market, 'NO'); }}
           >
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{market.option_b_label || 'NO'}</span>
-            <span className={noFlash} style={{ display: 'inline-block', minWidth: '34px', textAlign: 'center', flexShrink: 0 }}>
-              {Math.round(no_price)}¢
+            <span className={noFlash} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', minWidth: '34px', justifyContent: 'center', flexShrink: 0 }}>
+              🪙 {Math.round(no_price)}¢
             </span>
           </button>
         </div>
