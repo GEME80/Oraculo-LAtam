@@ -1435,6 +1435,50 @@ export default function App() {
         allUserPositions={allUserPositions}
         onRequestLogin={() => setShowAuthModal(true)}
       />
+
+      {/* ── MOBILE BOTTOM NAVIGATION ── */}
+      <nav className="bottom-nav">
+        <button 
+          className={`bottom-nav-item ${activeTab === 'markets' ? 'active' : ''}`}
+          onClick={() => setActiveTab('markets')}
+        >
+          <Compass size={20} />
+          <span>Mercados</span>
+        </button>
+        {userProfile && userProfile.role !== 'admin' && (
+          <button 
+            className={`bottom-nav-item ${activeTab === 'portfolio' ? 'active' : ''}`}
+            onClick={() => setActiveTab('portfolio')}
+          >
+            <Briefcase size={20} />
+            <span>Portafolio</span>
+          </button>
+        )}
+        <button 
+          className={`bottom-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          <LayoutDashboard size={20} />
+          <span>Dashboard</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${activeTab === 'shop' ? 'active' : ''}`}
+          onClick={() => setActiveTab('shop')}
+        >
+          <ShoppingBag size={20} />
+          <span>Alianzas</span>
+        </button>
+        <button 
+          className={`bottom-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => {
+            if (!userProfile) setShowAuthModal(true);
+            else setActiveTab('profile');
+          }}
+        >
+          <User size={20} />
+          <span>Perfil</span>
+        </button>
+      </nav>
     </div>
   );
 }
