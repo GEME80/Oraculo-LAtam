@@ -55,6 +55,11 @@ export default function Dashboard({ userProfile, setActiveTab }) {
   const [categoryShares, setCategoryShares] = useState([]);
   const [outcomeProportion, setOutcomeProportion] = useState({ yes: 0, no: 0 });
   const [monthlyStats, setMonthlyStats] = useState([]);
+  
+  // Dashboard Sub-tabs
+  const [subTab, setSubTab] = useState('general');
+  const [selectedMonth, setSelectedMonth] = useState('Todos');
+  const [marketHistory, setMarketHistory] = useState([]);
 
   // Admin Portal states
   const [users, setUsers] = useState([]);
@@ -227,19 +232,30 @@ export default function Dashboard({ userProfile, setActiveTab }) {
     // Sort by date ascending
     allEvents.sort((a, b) => a.date - b.date);
 
+    // Compute monthly statistics (move getMonthKey up)
+    const getMonthKey = (dateStr) => {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'Historial';
+      const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      return `${months[d.getMonth()]} ${d.getFullYear()}`;
+    };
+
     // Group by date (Month Day)
     const dailyMap = {};
     allEvents.forEach(e => {
       const dayKey = e.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      if (!dailyMap[dayKey]) {
-        dailyMap[dayKey] = { day: dayKey, spent: 0, returned: 0, pnlEffect: 0 };
+      const monthStr = getMonthKey(e.date);
+      const uniqueKey = `${dayKey}-${monthStr}`;
+      
+      if (!dailyMap[uniqueKey]) {
+        dailyMap[uniqueKey] = { day: dayKey, monthKey: monthStr, spent: 0, returned: 0, pnlEffect: 0 };
       }
       if (e.type === 'buy') {
-        dailyMap[dayKey].spent += e.amount;
+        dailyMap[uniqueKey].spent += e.amount;
       } else {
-        dailyMap[dayKey].returned += e.amount;
+        dailyMap[uniqueKey].returned += e.amount;
       }
-      dailyMap[dayKey].pnlEffect += e.pnlEffect;
+      dailyMap[uniqueKey].pnlEffect += e.pnlEffect;
     });
 
     const dailyList = Object.values(dailyMap);
@@ -250,6 +266,7 @@ export default function Dashboard({ userProfile, setActiveTab }) {
       runningSpent += item.spent;
       return {
         label: item.day,
+        monthKey: item.monthKey,
         value: runningSpent,
         raw: item.spent
       };
@@ -257,7 +274,7 @@ export default function Dashboard({ userProfile, setActiveTab }) {
 
     // Seeding Day 0 for cleaner visuals if only 1 data point is present
     if (spentTrend.length === 1) {
-      spentTrend.unshift({ label: 'Inicio', value: 0, raw: 0 });
+      spentTrend.unshift({ label: 'Inicio', monthKey: spentTrend[0].monthKey, value: 0, raw: 0 });
     }
     setConsumptionTrend(spentTrend);
 
@@ -267,23 +284,17 @@ export default function Dashboard({ userProfile, setActiveTab }) {
       runningPnl += item.pnlEffect;
       return {
         label: item.day,
+        monthKey: item.monthKey,
         value: runningPnl
       };
     });
 
     if (pnlEvolution.length === 1) {
-      pnlEvolution.unshift({ label: 'Inicio', value: 0 });
+      pnlEvolution.unshift({ label: 'Inicio', monthKey: pnlEvolution[0].monthKey, value: 0 });
     }
     setPnlTrend(pnlEvolution);
 
-    // Compute monthly statistics
     const monthlyGroups = {};
-    const getMonthKey = (dateStr) => {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return 'Historial';
-      const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-      return `${months[d.getMonth()]} ${d.getFullYear()}`;
-    };
 
     trans.forEach(t => {
       const month = getMonthKey(t.created_at);
@@ -315,6 +326,45 @@ export default function Dashboard({ userProfile, setActiveTab }) {
       };
     });
     setMonthlyStats(statsArray);
+
+    // Historical market PnL
+    const marketPnlMap = {};
+    
+    trans.forEach(t => {
+      const mId = t.market_id;
+      if (!marketPnlMap[mId]) {
+        const m = mkts.find(market => market.id === mId);
+        marketPnlMap[mId] = {
+          marketId: mId,
+          question: m ? m.question : 'Mercado Desconocido',
+          spent: 0,
+          returned: 0,
+          status: m ? m.status : 'unknown'
+        };
+      }
+      const amt = parseFloat(t.points_paid);
+      if (t.type === 'buy') {
+        marketPnlMap[mId].spent += amt;
+      } else if (t.type === 'sell') {
+        marketPnlMap[mId].returned += amt;
+      }
+    });
+
+    pays.forEach(p => {
+      const mId = p.market_id;
+      if (marketPnlMap[mId]) {
+        marketPnlMap[mId].returned += parseFloat(p.payout_amount);
+      }
+    });
+
+    const historyArray = Object.values(marketPnlMap).map(m => {
+      return {
+        ...m,
+        net: m.returned - m.spent,
+      };
+    }).sort((a, b) => b.net - a.net);
+    
+    setMarketHistory(historyArray);
   };
 
   const renderLineChart = (data, isPnl = false) => {
@@ -1238,243 +1288,328 @@ export default function Dashboard({ userProfile, setActiveTab }) {
       
       {/* Header Summary */}
       <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'hsl(var(--text-main))' }}>Dashboard de Rendimiento Financiero</h2>
-        <p style={{ fontSize: '0.875rem', color: 'hsl(var(--text-muted))' }}>
-          Monitorea y analiza el historial de consumo de tus créditos, tus ganancias y pérdidas y la trayectoria de tus inversiones.
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Activity size={22} style={{ color: 'hsl(var(--brand))' }} />
+          Dashboard del Inversor
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: 'hsl(var(--text-muted))', marginTop: '0.25rem' }}>
+          Monitorea y analiza el historial de consumo de tus créditos, ganancias, y trayectoria de inversiones.
         </p>
       </div>
 
-      {/* KPI Cards Panel */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-        
-        {/* KPI Spent */}
-        <div className="stat-card" style={{ position: 'relative' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Total Consumido
-            <span className="info-tooltip-wrapper">
-              <HelpCircle size={12} />
-              <span className="info-tooltip-text tooltip-right" style={{ fontWeight: 'normal' }}>
-                Créditos totales que has gastado al comprar contratos de predicción (SÍ y NO).
-              </span>
-            </span>
-          </span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 800, display: 'block', margin: '0.5rem 0 0.25rem 0' }}>
-            {totalSpent.toLocaleString(undefined, { maximumFractionDigits: 2 })} Créditos
-          </span>
-          <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <Coins size={10} /> En {transactions.filter(t => t.type === 'buy').length} compras de mercado
-          </span>
-        </div>
-
-        {/* KPI Payouts / Earned */}
-        <div className="stat-card" style={{ position: 'relative' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Retornos Recibidos
-            <span className="info-tooltip-wrapper">
-              <HelpCircle size={12} />
-              <span className="info-tooltip-text tooltip-right" style={{ fontWeight: 'normal' }}>
-                Créditos obtenidos a partir de tus ventas anticipadas y los pagos de dividendos de mercados resueltos.
-              </span>
-            </span>
-          </span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 800, display: 'block', margin: '0.5rem 0 0.25rem 0' }}>
-            {totalEarned.toLocaleString(undefined, { maximumFractionDigits: 2 })} Créditos
-          </span>
-          <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <ArrowUpRight size={10} style={{ color: 'hsl(var(--yes-color))' }} /> Incluye {payouts.length} resoluciones de mercado
-          </span>
-        </div>
-
-        {/* KPI PnL */}
-        <div className="stat-card" style={{ position: 'relative' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Resultado Neto (PnL)
-            <span className="info-tooltip-wrapper">
-              <HelpCircle size={12} />
-              <span className="info-tooltip-text tooltip-left" style={{ fontWeight: 'normal' }}>
-                Tu balance consolidado (Retornos recibidos - Total consumido). Mide tus ganancias o pérdidas totales.
-              </span>
-            </span>
-          </span>
-          <span style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 800, 
-            display: 'block', 
-            margin: '0.5rem 0 0.25rem 0',
-            color: netPnl >= 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))'
-          }}>
-            {netPnl >= 0 ? '+' : ''}{netPnl.toLocaleString(undefined, { maximumFractionDigits: 2 })} Créditos
-          </span>
-          <span style={{ 
-            fontSize: '0.7rem', 
-            fontWeight: 700,
-            color: netPnl >= 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))',
+      {/* SUB-TABS */}
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <button 
+          onClick={() => setSubTab('general')}
+          style={{ 
+            padding: '0.6rem 1.25rem', 
+            borderRadius: 'var(--radius-md)', 
+            fontSize: '0.85rem', 
+            fontWeight: 800,
+            background: subTab === 'general' ? 'hsl(var(--brand) / 0.15)' : 'transparent',
+            color: subTab === 'general' ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.5rem',
+            whiteSpace: 'nowrap'
           }}>
-            {netPnl >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />} 
-            {netPnl >= 0 ? 'Balance de Ganancias' : 'Balance de Pérdidas'}
-          </span>
-        </div>
-
-        {/* KPI ROI */}
-        <div className="stat-card" style={{ position: 'relative' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Retorno de Inversión (ROI)
-            <span className="info-tooltip-wrapper">
-              <HelpCircle size={12} />
-              <span className="info-tooltip-text tooltip-left" style={{ fontWeight: 'normal' }}>
-                Rentabilidad porcentual obtenida en relación al volumen de créditos que has inyectado en el sistema.
-              </span>
-            </span>
-          </span>
-          <span style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 800, 
-            display: 'block', 
-            margin: '0.5rem 0 0.25rem 0',
-            color: roi >= 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))'
+          <PieChart size={16} /> Visión General
+        </button>
+        <button 
+          onClick={() => setSubTab('daily')}
+          style={{ 
+            padding: '0.6rem 1.25rem', 
+            borderRadius: 'var(--radius-md)', 
+            fontSize: '0.85rem', 
+            fontWeight: 800,
+            background: subTab === 'daily' ? 'hsl(var(--brand) / 0.15)' : 'transparent',
+            color: subTab === 'daily' ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            whiteSpace: 'nowrap'
           }}>
-            {roi >= 0 ? '+' : ''}{roi.toFixed(2)}%
-          </span>
-          <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <Percent size={10} /> Rendimiento de capital inyectado
-          </span>
-        </div>
-
+          <Calendar size={16} /> Histórico Diario
+        </button>
       </div>
 
-      {/* Grid Charts Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }} className="dashboard-charts-layout">
-        
-        {/* Left Column Charts */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }} className="sub-charts-grid">
-          
-          {/* Chart 1: Credit Consumption Line Chart */}
-          <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Coins size={16} style={{ color: 'hsl(var(--brand))' }} />
-              Evolución del Consumo Acumulado (Créditos gastados)
-            </h3>
-            <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0' }}>
-              {renderLineChart(consumptionTrend, false)}
+      {subTab === 'general' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.3s ease' }}>
+          {/* KPI Cards Panel */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            
+            <div className="stat-card" style={{ position: 'relative' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Total Consumido
+                <span className="info-tooltip-wrapper">
+                  <HelpCircle size={12} />
+                  <span className="info-tooltip-text tooltip-right" style={{ fontWeight: 'normal' }}>
+                    Créditos totales que has gastado al comprar contratos de predicción (SÍ y NO).
+                  </span>
+                </span>
+              </span>
+              <span style={{ fontSize: '1.5rem', fontWeight: 800, display: 'block', margin: '0.5rem 0 0.25rem 0' }}>
+                {totalSpent.toLocaleString(undefined, { maximumFractionDigits: 2 })} Créditos
+              </span>
+              <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Coins size={10} /> En {transactions.filter(t => t.type === 'buy').length} compras de mercado
+              </span>
             </div>
+
+            <div className="stat-card" style={{ position: 'relative' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Retornos Recibidos
+                <span className="info-tooltip-wrapper">
+                  <HelpCircle size={12} />
+                  <span className="info-tooltip-text tooltip-right" style={{ fontWeight: 'normal' }}>
+                    Créditos obtenidos a partir de tus ventas anticipadas y los pagos de dividendos de mercados resueltos.
+                  </span>
+                </span>
+              </span>
+              <span style={{ fontSize: '1.5rem', fontWeight: 800, display: 'block', margin: '0.5rem 0 0.25rem 0' }}>
+                {totalEarned.toLocaleString(undefined, { maximumFractionDigits: 2 })} Créditos
+              </span>
+              <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <ArrowUpRight size={10} style={{ color: 'hsl(var(--yes-color))' }} /> Incluye {payouts.length} resoluciones de mercado
+              </span>
+            </div>
+
+            <div className="stat-card" style={{ position: 'relative' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Resultado Neto (PnL)
+                <span className="info-tooltip-wrapper">
+                  <HelpCircle size={12} />
+                  <span className="info-tooltip-text tooltip-left" style={{ fontWeight: 'normal' }}>
+                    Tu balance consolidado (Retornos recibidos - Total consumido). Mide tus ganancias o pérdidas totales.
+                  </span>
+                </span>
+              </span>
+              <span style={{ 
+                fontSize: '1.5rem', 
+                fontWeight: 800, 
+                display: 'block', 
+                margin: '0.5rem 0 0.25rem 0',
+                color: netPnl >= 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))'
+              }}>
+                {netPnl >= 0 ? '+' : ''}{netPnl.toLocaleString(undefined, { maximumFractionDigits: 2 })} Créditos
+              </span>
+              <span style={{ 
+                fontSize: '0.7rem', 
+                fontWeight: 700,
+                color: netPnl >= 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}>
+                {netPnl >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />} 
+                {netPnl >= 0 ? 'Balance de Ganancias' : 'Balance de Pérdidas'}
+              </span>
+            </div>
+
+            <div className="stat-card" style={{ position: 'relative' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Retorno de Inversión (ROI)
+                <span className="info-tooltip-wrapper">
+                  <HelpCircle size={12} />
+                  <span className="info-tooltip-text tooltip-left" style={{ fontWeight: 'normal' }}>
+                    Rentabilidad porcentual obtenida en relación al volumen de créditos que has inyectado en el sistema.
+                  </span>
+                </span>
+              </span>
+              <span style={{ 
+                fontSize: '1.5rem', 
+                fontWeight: 800, 
+                display: 'block', 
+                margin: '0.5rem 0 0.25rem 0',
+                color: roi >= 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))'
+              }}>
+                {roi >= 0 ? '+' : ''}{roi.toFixed(2)}%
+              </span>
+              <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Percent size={10} /> Rendimiento de capital inyectado
+              </span>
+            </div>
+
           </div>
 
-          {/* Chart 2: Cumulative P&L line chart */}
-          <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <TrendingUp size={16} style={{ color: netPnl >= 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))' }} />
-              Trayectoria de P&L Neto Acumulado
-            </h3>
-            <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0' }}>
-              {renderLineChart(pnlTrend, true)}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }} className="dashboard-charts-layout">
+            <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Layers size={16} style={{ color: 'hsl(var(--brand))' }} />
+                Distribución de Preferencias por Categorías
+              </h3>
+              {categoryShares.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', fontSize: '0.8rem', color: 'hsl(var(--text-muted))' }}>
+                  No hay categorías registradas.
+                </div>
+              ) : (
+                renderCategoryBreakdown()
+              )}
+            </div>
+
+            <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Activity size={16} style={{ color: 'hsl(var(--brand))' }} />
+                Proporción de Resultados Apostados (SÍ vs NO)
+              </h3>
+              {renderOutcomeProportion()}
             </div>
           </div>
-
         </div>
+      )}
 
-        {/* Right Column Charts */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }} className="sub-charts-grid">
-
-          {/* Chart 3: Category shares horizontal bar chart */}
-          <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={16} style={{ color: 'hsl(var(--brand))' }} />
-              Distribución de Preferencias por Categorías
+      {subTab === 'daily' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', animation: 'fadeIn 0.3s ease' }}>
+          
+          {/* Header Controls for Daily Tab */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <TrendingUp size={18} style={{ color: 'hsl(var(--brand))' }} />
+              Estadísticas Diarias
             </h3>
-            {categoryShares.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', fontSize: '0.8rem', color: 'hsl(var(--text-muted))' }}>
-                No hay categorías registradas.
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>Filtrar por Mes:</span>
+              <select 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  padding: '0.4rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'hsl(var(--bg-card))',
+                  border: '1px solid hsl(var(--border))',
+                  color: 'hsl(var(--text-main))',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="Todos">Histórico Completo</option>
+                {monthlyStats.map(m => (
+                  <option key={m.month} value={m.month}>{m.month}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }} className="dashboard-charts-layout">
+            <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Coins size={16} style={{ color: 'hsl(var(--brand))' }} />
+                Consumo Diario (Créditos gastados)
+              </h3>
+              <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0' }}>
+                {renderLineChart(
+                  selectedMonth === 'Todos' ? consumptionTrend : consumptionTrend.filter(d => d.monthKey === selectedMonth || d.label === 'Inicio'), 
+                  false
+                )}
+              </div>
+            </div>
+
+            <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <TrendingUp size={16} style={{ color: 'hsl(var(--brand))' }} />
+                Trayectoria de P&L Diario
+              </h3>
+              <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 0' }}>
+                {renderLineChart(
+                  selectedMonth === 'Todos' ? pnlTrend : pnlTrend.filter(d => d.monthKey === selectedMonth || d.label === 'Inicio'), 
+                  true
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="leaderboard-view" style={{ padding: '1.5rem', marginTop: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.75rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Trophy size={18} style={{ color: 'hsl(var(--brand))' }} />
+              Historial de Resultados por Pregunta
+            </h3>
+
+            {marketHistory.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'hsl(var(--text-muted))', fontSize: '0.8rem' }}>
+                <Activity size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
+                <span>No has participado en ninguna pregunta aún.</span>
               </div>
             ) : (
-              renderCategoryBreakdown()
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid hsl(var(--border))', color: 'hsl(var(--text-muted))', fontWeight: 700 }}>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Pregunta (Mercado)</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Invertido</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Retornado</th>
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Resultado Final</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {marketHistory.map((m) => {
+                      const isPending = m.status === 'active' || m.status === 'pending';
+                      let resultLabel = '';
+                      let resultColor = '';
+                      
+                      if (isPending) {
+                        resultLabel = 'EN JUEGO';
+                        resultColor = 'hsl(var(--brand))';
+                      } else {
+                        if (m.net > 0) {
+                          resultLabel = 'GANASTE';
+                          resultColor = 'hsl(var(--yes-color))';
+                        } else if (m.net < 0) {
+                          resultLabel = 'PERDISTE';
+                          resultColor = 'hsl(var(--no-color))';
+                        } else {
+                          resultLabel = 'EMPATE';
+                          resultColor = 'hsl(var(--text-muted))';
+                        }
+                      }
+
+                      return (
+                        <tr key={m.marketId} style={{ borderBottom: '1px solid hsl(var(--border))' }}>
+                          <td style={{ padding: '0.85rem 0.5rem', fontWeight: 600, maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'hsl(var(--text-main))' }} title={m.question}>
+                            {m.question}
+                          </td>
+                          <td style={{ padding: '0.85rem 0.5rem', color: 'hsl(var(--text-muted))' }}>{m.spent.toLocaleString()}</td>
+                          <td style={{ padding: '0.85rem 0.5rem', color: 'hsl(var(--text-muted))' }}>{m.returned.toLocaleString()}</td>
+                          <td style={{ padding: '0.85rem 0.5rem', textAlign: 'right', fontWeight: 800 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.1rem' }}>
+                              <span style={{ color: resultColor, fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                                {resultLabel}
+                              </span>
+                              {!isPending && m.net !== 0 && (
+                                <span style={{ color: m.net > 0 ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))', fontSize: '0.8rem' }}>
+                                  {m.net > 0 ? '+' : ''}{m.net.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-
-          {/* Chart 4: YES/NO proportions progress bar */}
-          <div className="leaderboard-view" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Activity size={16} style={{ color: 'hsl(var(--brand))' }} />
-              Proporción de Resultados Apostados (SÍ vs NO)
-            </h3>
-            {renderOutcomeProportion()}
-          </div>
-
         </div>
-
-      </div>
-
-      {/* Monthly KPIs Panel (PnL) */}
-      <div className="leaderboard-view" style={{ padding: '1.5rem', marginTop: '0.5rem' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, borderBottom: '1px solid hsl(var(--border))', paddingBottom: '0.75rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={18} style={{ color: 'hsl(var(--brand))' }} />
-          Rendimiento Financiero Mensual (PnL)
-          <span className="info-tooltip-wrapper" style={{ marginLeft: '4px' }}>
-            <HelpCircle size={14} />
-            <span className="info-tooltip-text tooltip-right" style={{ fontWeight: 'normal' }}>
-              Cálculo histórico mensual del beneficio neto (ganancias menos pérdidas) de tus operaciones cerradas y dividendos de mercados resueltos.
-            </span>
-          </span>
-        </h3>
-
-        {monthlyStats.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'hsl(var(--text-muted))', fontSize: '0.8rem' }}>
-            <Activity size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
-            <span>No hay operaciones registradas este mes para calcular el PnL mensual.</span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            
-            {/* Monthly KPI table */}
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid hsl(var(--border))', color: 'hsl(var(--text-muted))', fontWeight: 700 }}>
-                    <th style={{ padding: '0.5rem' }}>Mes</th>
-                    <th style={{ padding: '0.5rem' }}>Invertido</th>
-                    <th style={{ padding: '0.5rem' }}>Retornado</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>PnL Neto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthlyStats.map((stat, idx) => {
-                    const isPos = stat.pnl >= 0;
-                    return (
-                      <tr key={idx} style={{ borderBottom: '1px solid hsl(var(--border))' }}>
-                        <td style={{ padding: '0.6rem 0.5rem', fontWeight: 'bold' }}>{stat.month}</td>
-                        <td style={{ padding: '0.6rem 0.5rem' }}>{stat.spent.toLocaleString()} Créditos</td>
-                        <td style={{ padding: '0.6rem 0.5rem' }}>{stat.returned.toLocaleString()} Créditos</td>
-                        <td style={{ 
-                          padding: '0.6rem 0.5rem', 
-                          textAlign: 'right', 
-                          fontWeight: 'bold',
-                          color: isPos ? 'hsl(var(--yes-color))' : 'hsl(var(--no-color))' 
-                        }}>
-                          {isPos ? '+' : ''}{stat.pnl.toLocaleString()} Créditos ({isPos ? '+' : ''}{stat.roi.toFixed(1)}%)
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Sub-text explanation */}
-            <span style={{ fontSize: '0.7rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '0.25rem', lineHeight: '1.3' }}>
-              <HelpCircle size={12} style={{ flexShrink: 0 }} />
-              <span>El PnL calcula la diferencia mensual entre los créditos gastados al comprar contratos y los créditos recuperados al venderlos o cobrar dividendos de mercados resueltos.</span>
-            </span>
-          </div>
-        )}
-      </div>
+      )}
 
       <style>{`
         @media (min-width: 900px) {
           .dashboard-charts-layout {
             grid-template-columns: 1fr 1fr !important;
           }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(5px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
