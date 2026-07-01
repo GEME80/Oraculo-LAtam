@@ -336,7 +336,7 @@ export default function Dashboard({ userProfile, setActiveTab }) {
         const m = mkts.find(market => market.id === mId);
         marketPnlMap[mId] = {
           marketId: mId,
-          question: m ? m.question : 'Mercado Desconocido',
+          question: m ? m.title : 'Mercado Desconocido',
           spent: 0,
           returned: 0,
           status: m ? m.status : 'unknown'
@@ -347,6 +347,7 @@ export default function Dashboard({ userProfile, setActiveTab }) {
         marketPnlMap[mId].spent += amt;
       } else if (t.type === 'sell') {
         marketPnlMap[mId].returned += amt;
+
       }
     });
 
