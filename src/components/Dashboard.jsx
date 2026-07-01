@@ -339,15 +339,22 @@ export default function Dashboard({ userProfile, setActiveTab }) {
           question: m ? m.title : 'Mercado Desconocido',
           spent: 0,
           returned: 0,
-          status: m ? m.status : 'unknown'
+          status: m ? m.status : 'unknown',
+          firstBetDate: t.created_at,
+          closeDate: null,
+          closesAt: m ? m.closes_at : null
         };
+      } else {
+        if (new Date(t.created_at) < new Date(marketPnlMap[mId].firstBetDate)) {
+          marketPnlMap[mId].firstBetDate = t.created_at;
+        }
       }
+      
       const amt = parseFloat(t.points_paid);
       if (t.type === 'buy') {
         marketPnlMap[mId].spent += amt;
       } else if (t.type === 'sell') {
         marketPnlMap[mId].returned += amt;
-
       }
     });
 
@@ -355,6 +362,9 @@ export default function Dashboard({ userProfile, setActiveTab }) {
       const mId = p.market_id;
       if (marketPnlMap[mId]) {
         marketPnlMap[mId].returned += parseFloat(p.payout_amount);
+        if (!marketPnlMap[mId].closeDate || new Date(p.created_at) > new Date(marketPnlMap[mId].closeDate)) {
+          marketPnlMap[mId].closeDate = p.created_at;
+        }
       }
     });
 
@@ -1545,6 +1555,7 @@ export default function Dashboard({ userProfile, setActiveTab }) {
                   <thead>
                     <tr style={{ borderBottom: '2px solid hsl(var(--border))', color: 'hsl(var(--text-muted))', fontWeight: 700 }}>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Pregunta (Mercado)</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>Fechas</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Invertido</th>
                       <th style={{ padding: '0.75rem 0.5rem' }}>Retornado</th>
                       <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Resultado Final</th>
@@ -1571,11 +1582,17 @@ export default function Dashboard({ userProfile, setActiveTab }) {
                           resultColor = 'hsl(var(--text-muted))';
                         }
                       }
+                      
+                      const formatDate = (ds) => ds ? new Date(ds).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
                       return (
                         <tr key={m.marketId} style={{ borderBottom: '1px solid hsl(var(--border))' }}>
                           <td style={{ padding: '0.85rem 0.5rem', fontWeight: 600, maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'hsl(var(--text-main))' }} title={m.question}>
                             {m.question}
+                          </td>
+                          <td style={{ padding: '0.85rem 0.5rem', fontSize: '0.75rem', color: 'hsl(var(--text-muted))' }}>
+                            <div style={{ marginBottom: '0.2rem' }}><span style={{fontWeight: 600}}>Apostó:</span> {formatDate(m.firstBetDate)}</div>
+                            <div><span style={{fontWeight: 600}}>Cierre:</span> {m.closeDate ? formatDate(m.closeDate) : (isPending && m.closesAt ? formatDate(m.closesAt) : '-')}</div>
                           </td>
                           <td style={{ padding: '0.85rem 0.5rem', color: 'hsl(var(--text-muted))' }}>{m.spent.toLocaleString()}</td>
                           <td style={{ padding: '0.85rem 0.5rem', color: 'hsl(var(--text-muted))' }}>{m.returned.toLocaleString()}</td>
