@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Terminal, Sparkles, AlertCircle, Edit3, PlusCircle, Check, X, Calendar, Link2, FilePlus, Globe, Hash, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Dialog } from './CustomDialog';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 // ─────────────────────────────────────────────
 // DATE HELPERS  — always anchored to the future
@@ -1152,42 +1153,106 @@ export default function AiCurator({ onMarketLaunched }) {
   }, [selectedCategoryFilter]);
 
   // ── IA SIMULATION ──
-  const handleStartSimulation = () => {
+  const handleStartSimulation = async () => {
     if (running) return;
     setRunning(true);
+    setLogs([{ text: '🌐 Conectando a Google Trends...', type: 'info' }]);
+
     const genCategory = selectedCategoryFilter === 'Todos'
       ? CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
       : selectedCategoryFilter;
 
     // Resolve active topic
     const activeTopic = showCustomInput && customTopic.trim()
-      ? { id: 'custom', label: customTopic.trim(), emoji: '✏️' }
-      : selectedTopic;
+      ? customTopic.trim()
+      : (selectedTopic ? selectedTopic.label : null);
 
-    const baseLogs = LOGS_BY_CATEGORY[genCategory] || LOGS_BY_CATEGORY['Deportes'];
-    let finalLogs = [...baseLogs];
-    if (activeTopic) {
-      finalLogs.splice(2, 0, {
-        text: `[Agente 1] Tema enfocado: "${activeTopic.emoji || '✏️'} ${activeTopic.label}". Filtrando noticias y eventos relevantes...`,
-        type: 'warning'
-      });
-    }
-
-    let logIndex = 0;
-    setLogs([finalLogs[0]]);
-    if (activeIntervalRef.current) clearInterval(activeIntervalRef.current);
-
-    activeIntervalRef.current = setInterval(() => {
-      if (logIndex < finalLogs.length - 1) {
-        logIndex++;
-        setLogs(prev => [...prev, finalLogs[logIndex]]);
-      } else {
-        clearInterval(activeIntervalRef.current);
-        setRunning(false);
-        const newSug = generateDynamicCuratedSuggestion(genCategory, activeTopic);
-        setSuggestions(prev => [newSug, ...prev]);
+    try {
+      setLogs(prev => [...prev, { text: '📡 Obteniendo tendencias de LATAM...', type: 'info' }]);
+      
+      const trendsRes = await fetch('/api/trends?geo=CO');
+      const trendsData = await trendsRes.json();
+      
+      let trendingText = 'No se pudieron obtener tendencias.';
+      if (trendsData.success && trendsData.trends) {
+        trendingText = trendsData.trends.slice(0, 15).join(', ');
+        setLogs(prev => [...prev, { text: `🔥 Tendencias actuales: ${trendsData.trends.slice(0,3).join(', ')}...`, type: 'success' }]);
       }
-    }, 1400);
+
+      setLogs(prev => [...prev, { text: '🧠 Invocando Gemini 1.5 Flash para generar preguntas...', type: 'warning' }]);
+
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('Falta la clave VITE_GEMINI_API_KEY en el archivo .env o en el panel de Vercel.');
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const schema = {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            title: { type: SchemaType.STRING, description: "Pregunta de mercado atractiva." },
+            description: { type: SchemaType.STRING, description: "Contexto detallado de cómo se resolverá." },
+            category: { type: SchemaType.STRING, description: "Política, Deportes, Tecnología, Economía, Cultura" },
+            option_a_label: { type: SchemaType.STRING, description: "SÍ, Aprobará, Gana X" },
+            option_b_label: { type: SchemaType.STRING, description: "NO, Rechazará, Gana Y" },
+            resolution_source: { type: SchemaType.STRING, description: "URL de la fuente oficial de resolución" }
+          },
+          required: ["title", "description", "category", "option_a_label", "option_b_label", "resolution_source"]
+        }
+      };
+
+      const prompt = `Eres un agente experto en mercados de predicción.
+Contexto:
+- Categoría Solicitada: ${genCategory}
+- Tema Específico: ${activeTopic || 'Cualquiera'}
+- Tendencias Actuales de Google (Opcional): ${trendingText}
+
+Genera 2 preguntas de mercados de predicción sumamente polémicas, claras y relevantes para LATAM, basándote en las tendencias de Google (si hay) o en el tema.
+El mercado debe poder resolverse en los próximos meses.
+Devuelve el resultado como un JSON array válido que cumpla con el esquema provisto.`;
+
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: schema,
+        }
+      });
+
+      const marketsArray = JSON.parse(result.response.text());
+
+      setLogs(prev => [...prev, { text: `✅ Se generaron ${marketsArray.length} mercados exitosamente.`, type: 'success' }]);
+
+      const newSuggestions = marketsArray.map((m, idx) => ({
+        id: `dyn-ai-${Date.now()}-${idx}`,
+        title: m.title,
+        description: m.description,
+        category: m.category,
+        country: 'CO', // fallback default
+        start_date: new Date().toISOString(),
+        end_date: getNextMonthEnd().toISOString(),
+        yes_price: 50.00, no_price: 50.00,
+        yes_liquidity: 500.00, no_liquidity: 500.00,
+        volume: 0,
+        status: 'active',
+        resolution_source: m.resolution_source,
+        image_url: 'https://images.unsplash.com/photo-1601506521937-0121a7fc2a6b?auto=format&fit=crop&w=400&q=80',
+        option_a_label: m.option_a_label,
+        option_b_label: m.option_b_label
+      }));
+
+      setSuggestions(prev => [...newSuggestions, ...prev]);
+
+    } catch (error) {
+      console.error(error);
+      setLogs(prev => [...prev, { text: `❌ Error: ${error.message}`, type: 'error' }]);
+    } finally {
+      setRunning(false);
+    }
   };
 
   // ── SUGGESTION EDIT ──
